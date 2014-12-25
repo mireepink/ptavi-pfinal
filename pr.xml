@@ -1,10 +1,20 @@
-<!ELEMENT config (server, database, log)>
-<!ELEMENT server EMPTY>
-<!ATTLIST server name CDATA #IMPLIED>
-<!ATTLIST server ip CDATA #IMPLIED>
-<!ATTLIST server puerto CDATA #REQUIRED>
-<!ELEMENT database EMPTY>
-<!ATTLIST database path CDATA #REQUIRED>
-<!ATTLIST database passwdpath CDATA #IMPLIED>
-<!ELEMENT log EMPTY>
-<!ATTLIST log path CDATA #REQUIRED>
+<!DOCTYPE config [
+    <!ELEMENT config (server, database, log)>
+    <!ELEMENT server EMPTY>
+    <!ATTLIST server name CDATA #IMPLIED>
+    <!ATTLIST server ip CDATA #IMPLIED>
+    <!ATTLIST server puerto CDATA #REQUIRED>
+    <!ELEMENT database EMPTY>
+    <!ATTLIST database path CDATA #REQUIRED>
+    <!ATTLIST database passwdpath CDATA #IMPLIED>
+    <!ELEMENT log EMPTY>
+    <!ATTLIST log path CDATA #REQUIRED>
+]>
+<config>
+    <server name="ProxyServer" />
+    <server ip = "127.0.0.3"/>
+    <server puerto="3000" />
+    <database path="~/ptavi/pracfinal/ptavi-pfinal/registered.txt" />
+    <database />
+    <log path="~/ptavi/pracfinal/ptavi-pfinal" />
+</config>
