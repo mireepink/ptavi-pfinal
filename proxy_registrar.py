@@ -4,6 +4,7 @@
 Clase (y programa principal) para un servidor de eco en UDP simple
 """
 
+import configreader
 import SocketServer
 import sys
 import os
@@ -44,3 +45,7 @@ if __name__ == "__main__":
         sys.exit("Usage: python proxy_registrar.py config")
     else:
         CONFIG = sys.argv[1]
+
+    # Lectura e impresión del archivo de configuración
+    config = configreader.ConfigReader(CONFIG)
+    print config
