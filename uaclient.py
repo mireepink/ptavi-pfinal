@@ -4,6 +4,7 @@
 Programa User Agent Client para comunicación SIP
 """
 
+import configreader
 import socket
 import sys
 
@@ -19,3 +20,7 @@ else:
     CONFIG = sys.argv[1]
     METHOD = sys.argv[2].upper()
     OPTION = sys.argv[3]
+
+    # Lectura e impresión del archivo de configuración
+    config = configreader.ConfigReader(CONFIG)
+    print config
