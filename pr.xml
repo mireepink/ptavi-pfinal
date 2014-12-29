@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE config [
     <!ELEMENT config (server, database, log)>
     <!ELEMENT server EMPTY>
@@ -11,10 +12,7 @@
     <!ATTLIST log path CDATA #REQUIRED>
 ]>
 <config>
-    <server name="ProxyServer" />
-    <server ip = "127.0.0.3"/>
-    <server puerto="3000" />
-    <database path="~/ptavi/pracfinal/ptavi-pfinal/registered.txt" />
-    <database />
-    <log path="~/ptavi/pracfinal/ptavi-pfinal" />
+    <server name="ProxyServer" ip = "127.0.0.3" puerto="3000" />
+    <database path="registered.txt" passwdpath="pass3" />
+    <log path="log.txt" />
 </config>
