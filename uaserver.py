@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-15 -*-
 """
-Clase (y programa principal) para un servidor de eco en UDP simple
+Clase (y programa principal) para un User Agent Server en SIP
 """
 
+import configreader
 import SocketServer
 import sys
 import os
@@ -44,3 +45,7 @@ if __name__ == "__main__":
         sys.exit("Usage: python uaserver.py config")
     else:
         CONFIG = sys.argv[1]
+
+    # Lectura e impresión del archivo de configuración
+    config = configreader.ConfigReader(CONFIG)
+    print config
