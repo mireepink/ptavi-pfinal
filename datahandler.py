@@ -25,8 +25,8 @@ class DataHandler(ContentHandler):
         if name == 'account':
             username = attrs.get('username', "")
             passwd = attrs.get('passwd', "")
-            self.attr_dicc['username'] = username
-            self.attr_dicc['userpass'] = passwd
+            self.attr_dicc['userName'] = username
+            self.attr_dicc['userPass'] = passwd
 
         if name == 'uaserver':
             ip = attrs.get('ip', "")
