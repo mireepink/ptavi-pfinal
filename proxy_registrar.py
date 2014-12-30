@@ -9,8 +9,10 @@ import datahandler
 import SocketServer
 import sys
 import os
+import time
 
 
+#--------------------------------- Clase --------------------------------------
 class EchoHandler(SocketServer.DatagramRequestHandler):
     """
     Echo server class
@@ -36,6 +38,19 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                 # Evaluación de los parámetros que nos envía el cliente
                 print "Recibido:\n" + line
 
+#--------------------------------- Métodos ------------------------------------
+def log2file(event):
+    """
+    Método para imprimir mensajes de log en un fichero de texto
+    """
+    logFile = open(LOG_FILE, 'a')
+    logFile.write('...\n')
+
+    formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    logFile.write(formatTime + ' ' + event + '\n')
+    logFile.close()
+
+#-----------------------------Programa principal-------------------------------
 if __name__ == "__main__":
 
     # Versión del protocolo SIP
@@ -47,25 +62,20 @@ if __name__ == "__main__":
     else:
         CONFIG = sys.argv[1]
 
-        # Parseo del fichero XML    
-        parser = make_parser()
-        dataHandler = datahandler.DataHandler()
-        parser.setContentHandler(dataHandler)
-        parser.parse(open(CONFIG))
+    # Parseo del fichero XML    
+    parser = make_parser()
+    dataHandler = datahandler.DataHandler()
+    parser.setContentHandler(dataHandler)
+    parser.parse(open(CONFIG))
 
-        # Lectura del archivo de configuración proxy
-        attr_dicc = {}
-        attr_dicc = dataHandler.get_attrs()
-        for attr in attr_dicc.keys():
-            if attr == 'servername':
-                SERVERNAME = attr_dicc[attr]
-            elif attr == 'prserver_ip':
-                PRSERVER_IP = attr_dicc[attr]
-            elif attr == 'prserv_port':
-                PRSERV_PORT = attr_dicc[attr]
-            elif attr == 'reg_file':
-                REG_FILE = attr_dicc[attr]
-            elif attr == 'reg_passwd':
-                REG_PASSWD = attr_dicc[attr]
-            elif attr == 'log_path':
-                LOG_PATH = attr_dicc[attr]
+    # Lectura del archivo de configuración UA
+    attr_dicc = dataHandler.get_attrs()
+    SERVERNAME = attr_dicc['servName']
+    PRSERVER_IP = attr_dicc['servIp']
+    PRSERV_PORT = attr_dicc['servPort']
+    REG_FILE = attr_dicc['regPath']
+    REGPASS_FILE = attr_dicc['regPasswdPath']
+    LOG_FILE = attr_dicc['logPath']
+
+    # Comenzando el programa...
+    log2file('Starting...')
