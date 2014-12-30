@@ -4,7 +4,8 @@
 Clase (y programa principal) para un servidor de eco en UDP simple
 """
 
-import configreader
+from xml.sax import make_parser
+import datahandler
 import SocketServer
 import sys
 import os
@@ -46,6 +47,25 @@ if __name__ == "__main__":
     else:
         CONFIG = sys.argv[1]
 
-    # Lectura e impresión del archivo de configuración
-    config = configreader.ConfigReader(CONFIG)
-    print config
+        # Parseo del fichero XML    
+        parser = make_parser()
+        dataHandler = datahandler.DataHandler()
+        parser.setContentHandler(dataHandler)
+        parser.parse(open(CONFIG))
+
+        # Lectura del archivo de configuración proxy
+        attr_dicc = {}
+        attr_dicc = dataHandler.get_attrs()
+        for attr in attr_dicc.keys():
+            if attr == 'servername':
+                SERVERNAME = attr_dicc[attr]
+            elif attr == 'prserver_ip':
+                PRSERVER_IP = attr_dicc[attr]
+            elif attr == 'prserv_port':
+                PRSERV_PORT = attr_dicc[attr]
+            elif attr == 'reg_file':
+                REG_FILE = attr_dicc[attr]
+            elif attr == 'reg_passwd':
+                REG_PASSWD = attr_dicc[attr]
+            elif attr == 'log_path':
+                LOG_PATH = attr_dicc[attr]
