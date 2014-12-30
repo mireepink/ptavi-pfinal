@@ -21,6 +21,6 @@
     <uaserver ip="127.0.0.2" puerto="2000" />
     <rtpaudio puerto="2100" />
     <regproxy ip="127.0.0.3" puerto="3000" />
-    <log path="log.txt" />
+    <log path="ua2log.txt" />
     <audio path="cancion.mp3" />
 </config>
