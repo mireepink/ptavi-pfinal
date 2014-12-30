@@ -14,5 +14,5 @@
 <config>
     <server name="ProxyServer" ip = "127.0.0.3" puerto="3000" />
     <database path="registered.txt" passwdpath="pass3" />
-    <log path="log.txt" />
+    <log path="prlog.txt" />
 </config>
