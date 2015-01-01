@@ -16,12 +16,46 @@ def log2file(event):
     """
     Método para imprimir mensajes de log en un fichero de texto
     """
-    logFile = open(LOG_FILE, 'a')
-    logFile.write('...\n')
-
     formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    logFile = open(LOG_FILE, 'a')
     logFile.write(formatTime + ' ' + event + '\n')
     logFile.close()
+
+def send_receive(request, servIP, servPort):
+    """
+    Método para enviar solicitur a un servidor y recibir respuesta del mismo
+    """
+    # Creamos el socket, lo configuramos y lo atamos al servidor/puerto registrar
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    my_socket.connect((servIP, servPort))
+
+    # Enviamos solicitud
+    formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    my_socket.send(request)
+    print "Send to " + str(servIP) + ':' + str(servPort) + ':\n' + request
+    reqstLine = request.replace("\r\n", " ")
+    event = "Send to " + str(servIP) + ':' + str(servPort) + ': ' + reqstLine
+    log2file(event)
+
+    # Recibimos respuesta
+    try:
+        response = my_socket.recv(1024)
+    except socket.error:
+        print (formatTime + " Error: No server listening at " + servIP \
+               + " port " + str(servPort))
+        raise SystemExit
+    print "Received from " + str(servIP) + ':' + str(servPort) + ':\n' \
+          + response
+    respLine = response.replace("\r\n", " ")
+    event = "Received from " + str(servIP) + ':' + str(servPort) + ': ' \
+          + respLine
+    log2file(event)
+
+    # Finalizamos programa                                                          # ??????
+    print "Terminando socket..."
+    my_socket.close()
+    print "Fin."
 
 #-----------------------------Programa principal-------------------------------
 VERSION = "SIP/2.0"
@@ -57,26 +91,8 @@ log2file('Starting...')
 
 #-----------------------------------Registro-----------------------------------
 if METHOD == 'REGISTER':
-    servIP = PROX_IP
-    servPort = PROX_PORT
 
-    # Creamos el socket, lo configuramos y lo atamos al servidor/puerto registrar
-    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    my_socket.connect((servIP, servPort))
-
-    # Contenido a enviar
+    # Enviamos solicitud y recibimos respuesta
     request = METHOD + ' ' + 'sip:' + MY_USERNAME + '@dominio.net ' + VERSION \
             + '\r\n' + 'Expires: ' + OPTION + '\r\n\r\n'
-
-# Enviamos solicitud y recibimos respuesta
-formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
-my_socket.send(request)
-print "Enviado a " + str(servIP) + '|' + str(servPort) + ':\n' + request
-try:
-    response = my_socket.recv(1024)
-except socket.error:
-    print (formatTime + " Error: No server listening at " + servIP + " port " \
-           + str(servPort))
-    raise SystemExit
-print 'Recibido:\n' + response
+    send_receive(request, PROX_IP, PROX_PORT)
