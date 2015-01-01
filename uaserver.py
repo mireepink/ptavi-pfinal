@@ -72,8 +72,8 @@ if __name__ == "__main__":
     attr_dicc = dataHandler.get_attrs()
     USER_NAME = attr_dicc['userName']
     USER_PASS = attr_dicc['userPass']
-    UASERV_IP = attr_dicc['servIp']
-    UASERV_PORT = attr_dicc['servPort']
+    MY_IP = attr_dicc['servIp']
+    MY_PORT = attr_dicc['servPort']
     RTP_PORT = attr_dicc['rtpPort']
     PROX_IP = attr_dicc['proxIp']
     PROX_PORT = attr_dicc['proxPort']
