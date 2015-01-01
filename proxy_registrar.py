@@ -11,8 +11,9 @@ import sys
 import os
 import time
 
-# Variable global para almacenar los usuarios y sus valores
+# Variables globales
 users = {}
+LOG_FILE = ""
 
 
 #--------------------------------- Clase --------------------------------------
@@ -31,17 +32,21 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
 
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
-            line = self.rfile.read()
+            request = self.rfile.read()
 
             # Si no hay más líneas salimos del bucle infinito
-            if not line:
+            if not request:
                 break
             else:
                 # Evaluación de los parámetros que nos envía el cliente
-                print "\nRecibido de " + clientIp + "|" + clientPort + ':\n' \
-                      + line
+                print "\nReceived from " + clientIp + ":" + clientPort + ':\n'\
+                      + request
+                reqstLine = request.replace("\r\n", " ")
+                event = "Received from " + str(clientIp) + ':' \
+                      + str(clientPort) + ': ' + reqstLine
+                log2file(event)
                 try:
-                    parameters = line.split()
+                    parameters = request.split()
                     method = parameters[0]
                     protocol = parameters[1].split(':')[0]
                     address = parameters[1].split(':')[1]
@@ -49,16 +54,28 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                     server_ip = address.split('@')[1]
                     client_version = parameters[2]
                     option = parameters[4]
+
+                # Envío de "Bad Request"
                     if protocol != 'sip' or client_version != 'SIP/1.0'\
                         and client_version != 'SIP/2.0':
                         response = MY_VERSION + " 400 Bad Request\r\n\r\n"
                         self.wfile.write(response)
-                        print "Enviado:\n" + response
+                        print "Send to " + str(clientIp) + ':' \
+                              + str(clientPort) + ':\n' + response
+                        respLine = response.replace("\r\n", " ")
+                        event = "Send to " + str(clientIp) + ':' \
+                              + str(clientPort) + ': ' + respLine
+                        log2file(event)
                         break
                 except:
                     response = MY_VERSION + " 400 Bad Request\r\n\r\n"
                     self.wfile.write(response)
-                    print "Enviado:\n" + response
+                    print "Send to " + str(clientIp) + ':' + str(clientPort) \
+                          + ':\n' + response
+                    respLine = response.replace("\r\n", " ")
+                    event = "Send to " + str(clientIp) + ':' + str(clientPort)\
+                          + ': ' + respLine
+                    log2file(event)
                     break
 
                 # Evaluación del método que nos envía el cliente
@@ -86,7 +103,14 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                             print "Eliminado el usuario " + address
                         else:
                             print "El usuario no se encuentra en el registro"
-                    self.wfile.write(MY_VERSION + " 200 OK\r\n\r\n")
+                    response = MY_VERSION + " 200 OK\r\n\r\n"
+                    self.wfile.write(response)
+                    print "Send to " + str(clientIp) + ':' + str(clientPort) \
+                          + ':\n' + response
+                    respLine = response.replace("\r\n", " ")
+                    event = "Send to " + str(clientIp) + ':' + str(clientPort)\
+                          + ': ' + respLine
+                    log2file(event)
 
     def register2file(self):
         """
@@ -129,10 +153,8 @@ def log2file(event):
     """
     Método para imprimir mensajes de log en un fichero de texto
     """
-    logFile = open(LOG_FILE, 'a')
-    logFile.write('...\n')
-
     formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    logFile = open(LOG_FILE, 'a')
     logFile.write(formatTime + ' ' + event + '\n')
     logFile.close()
 
