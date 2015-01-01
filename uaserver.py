@@ -43,10 +43,8 @@ def log2file(event):
     """
     Método para imprimir mensajes de log en un fichero de texto
     """
-    logFile = open(LOG_FILE, 'a')
-    logFile.write('...\n')
-
     formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    logFile = open(LOG_FILE, 'a')
     logFile.write(formatTime + ' ' + event + '\n')
     logFile.close()
 
