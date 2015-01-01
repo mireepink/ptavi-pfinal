@@ -1,0 +1,8 @@
+<config>
+	<account username="Javi@ekiga.es" passwd=""/>
+	<uaserver ip="127.0.0.1" puerto="12345"/>
+	<rtpaudio puerto="12346"/>
+	<regproxy ip="127.0.0.2" puerto="12347"/>
+	<log path=""/>
+	<audio path=""/>
+</config>
