@@ -5,11 +5,14 @@ Programa User Agent Client para comunicación SIP
 """
 
 from xml.sax import make_parser
-import datahandler
 import socket
 import sys
 import time
+import uaserver
 
+
+# Variables globales
+response = ''
 
 #--------------------------------- Métodos ------------------------------------
 def log_debug(oper, ip, port, msg):
@@ -67,12 +70,12 @@ if len(sys.argv) != 4:
     sys.exit("Usage: python uaclient.py config method option")
 else:
     CONFIG = sys.argv[1]
-    METHOD = sys.argv[2].upper()
+    method = sys.argv[2].upper()
     OPTION = sys.argv[3]
 
 # Parseo del fichero XML    
 parser = make_parser()
-dataHandler = datahandler.DataHandler()
+dataHandler = uaserver.DataHandler()
 parser.setContentHandler(dataHandler)
 parser.parse(open(CONFIG))
 
@@ -95,19 +98,31 @@ MY_ADDRESS = MY_USERNAME + '@dominio.net'
 log_debug('', '', '', 'Starting...')
 
 #--------------------------------- REGISTER -----------------------------------
-if METHOD == 'REGISTER':
+if method == 'REGISTER':
 
     # Enviamos solicitud y recibimos respuesta
-    request = METHOD + ' sip:' + MY_ADDRESS + ' ' + VERSION + '\r\n' \
+    request = method + ' sip:' + MY_ADDRESS + ' ' + VERSION + '\r\n' \
             + 'Expires: ' + OPTION + '\r\n\r\n'
     send_receive(request, PROX_IP, PROX_PORT)
 
 #--------------------------------- INVITE -----------------------------------
-if METHOD == 'INVITE':
+if method == 'INVITE':
 
     # Enviamos solicitud y recibimos respuesta
-    request = METHOD + ' sip:' + OPTION + ' ' + VERSION + '\r\n' \
+    request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n' \
             + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' +  'o=' \
             + MY_ADDRESS + ' ' + MY_SERVIP + '\r\n' + 's=sesion_sip\r\n' \
             + 't=0\r\n' + 'm=audio ' + str(RTP_PORT) + ' RTP'
     send_receive(request, PROX_IP, PROX_PORT)
+
+    print '----------------------------------' + response
+
+    # Si recibimos confirmación de INVITE envíamos ACK y recibimos contenido
+    response1 = "SIP/1.0 100 Trying\r\n\r\n" + "SIP/1.0 180 Ringing\r\n\r\n"\
+              + "SIP/1.0 200 OK\r\n\r\n"
+    response2 = "SIP/2.0 100 Trying\r\n\r\n" + "SIP/2.0 180 Ringing\r\n\r\n"\
+              + "SIP/2.0 200 OK\r\n\r\n"
+    if response == response1 or response == response2:
+        method = 'ACK'
+        request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n\r\n'
+        send_receive(request, PROX_IP, PROX_PORT, '')
