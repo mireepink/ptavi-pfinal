@@ -12,13 +12,23 @@ import time
 
 
 #--------------------------------- Métodos ------------------------------------
-def log2file(event):
+def log_debug(oper, ip, port, msg):
     """
-    Método para imprimir mensajes de log en un fichero de texto
+    Método para imprimir log en fichero de texto y debug por pantalla
     """
     formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    msgLine = msg.replace("\r\n", " ")
+    info = ''
+    if oper == 'send':
+        info = "Send to " + str(ip) + ':' + str(port) + ':'
+        print info + '\n' + msg
+    elif oper == 'receive':
+        info = "Received from " + str(ip) + ':' + str(port) + ':'
+        print info + '\n' + msg
+    elif oper == 'error':
+        print formatTime + ' ' + msg
     logFile = open(LOG_FILE, 'a')
-    logFile.write(formatTime + ' ' + event + '\n')
+    logFile.write(formatTime + ' ' + info + msgLine + '\n')
     logFile.close()
 
 def send_receive(request, servIP, servPort):
@@ -33,29 +43,21 @@ def send_receive(request, servIP, servPort):
     # Enviamos solicitud
     formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
     my_socket.send(request)
-    print "Send to " + str(servIP) + ':' + str(servPort) + ':\n' + request
-    reqstLine = request.replace("\r\n", " ")
-    event = "Send to " + str(servIP) + ':' + str(servPort) + ': ' + reqstLine
-    log2file(event)
+    log_debug('send', servIP, servPort, request)
 
     # Recibimos respuesta
     try:
         response = my_socket.recv(1024)
     except socket.error:
-        print (formatTime + " Error: No server listening at " + servIP \
-               + " port " + str(servPort))
+        error_msg = "Error: No server listening at " + servIP  + " port " \
+                  + str(servPort)
+        log_debug('error', '', '', error_msg)
         raise SystemExit
-    print "Received from " + str(servIP) + ':' + str(servPort) + ':\n' \
-          + response
-    respLine = response.replace("\r\n", " ")
-    event = "Received from " + str(servIP) + ':' + str(servPort) + ': ' \
-          + respLine
-    log2file(event)
+    log_debug('receive', servIP, servPort, response)
 
-    # Finalizamos programa                                                          # ??????
-    print "Terminando socket..."
+    # Finalizamos programa
     my_socket.close()
-    print "Fin."
+    log_debug('', '', '', 'Finishing.')
 
 #-----------------------------Programa principal-------------------------------
 VERSION = "SIP/2.0"
@@ -78,21 +80,34 @@ parser.parse(open(CONFIG))
 attr_dicc = dataHandler.get_attrs()
 MY_USERNAME = attr_dicc['userName']
 MY_USERPASS = attr_dicc['userPass']
-UASERV_IP = attr_dicc['servIp']
-UASERV_PORT = int(attr_dicc['servPort'])
+MY_SERVIP = attr_dicc['servIp']
+MY_SERVPORT = int(attr_dicc['servPort'])
 RTP_PORT = int(attr_dicc['rtpPort'])
 PROX_IP = attr_dicc['proxIp']
 PROX_PORT = int(attr_dicc['proxPort'])
 LOG_FILE = attr_dicc['logPath']
 AUDIO_FILE = attr_dicc['audioPath']
 
-# Comenzando el programa...
-log2file('Starting...')
+# Dirección SIP
+MY_ADDRESS = MY_USERNAME + '@dominio.net'
 
-#-----------------------------------Registro-----------------------------------
+# Comenzando el programa...
+log_debug('', '', '', 'Starting...')
+
+#--------------------------------- REGISTER -----------------------------------
 if METHOD == 'REGISTER':
 
     # Enviamos solicitud y recibimos respuesta
-    request = METHOD + ' ' + 'sip:' + MY_USERNAME + '@dominio.net ' + VERSION \
-            + '\r\n' + 'Expires: ' + OPTION + '\r\n\r\n'
+    request = METHOD + ' sip:' + MY_ADDRESS + ' ' + VERSION + '\r\n' \
+            + 'Expires: ' + OPTION + '\r\n\r\n'
+    send_receive(request, PROX_IP, PROX_PORT)
+
+#--------------------------------- INVITE -----------------------------------
+if METHOD == 'INVITE':
+
+    # Enviamos solicitud y recibimos respuesta
+    request = METHOD + ' sip:' + OPTION + ' ' + VERSION + '\r\n' \
+            + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' +  'o=' \
+            + MY_ADDRESS + ' ' + MY_SERVIP + '\r\n' + 's=sesion_sip\r\n' \
+            + 't=0\r\n' + 'm=audio ' + str(RTP_PORT) + ' RTP'
     send_receive(request, PROX_IP, PROX_PORT)
