@@ -5,14 +5,14 @@ Clase (y programa principal) para un User Agent Server en SIP
 """
 
 from xml.sax import make_parser
-import datahandler
+from xml.sax.handler import ContentHandler
 import SocketServer
 import sys
 import os
 import time
 
 
-#--------------------------------- Clase --------------------------------------
+#--------------------------------- Clases -------------------------------------
 class EchoHandler(SocketServer.DatagramRequestHandler):
     """
     Echo server class
@@ -38,14 +38,75 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                 # Evaluación de los parámetros que nos envía el cliente
                 print "Recibido:\n" + line
 
-#--------------------------------- Métodos ------------------------------------
-def log2file(event):
+class DataHandler(ContentHandler):
     """
-    Método para imprimir mensajes de log en un fichero de texto
+    Clase DataHandler
+    """
+
+    def __init__(self):
+        """
+        Constructor. Inicializa el diccionario de atributos
+        """
+        self.attr_dicc = {}
+
+    def startElement(self, name, attrs):
+        """
+        Método que añade atributos al diccionario
+        """
+        if name == 'account':
+            username = attrs.get('username', "")
+            passwd = attrs.get('passwd', "")
+            self.attr_dicc['userName'] = username
+            self.attr_dicc['userPass'] = passwd
+
+        if name == 'uaserver':
+            ip = attrs.get('ip', "")
+            puerto = attrs.get('puerto', "")
+            self.attr_dicc['servIp'] = ip
+            self.attr_dicc['servPort'] = puerto
+
+        if name == 'rtpaudio':
+            puerto = attrs.get('puerto', "")
+            self.attr_dicc['rtpPort'] = puerto
+
+        if name == 'regproxy':
+            ip = attrs.get('ip', "")
+            puerto = attrs.get('puerto', "")
+            self.attr_dicc['proxIp'] = ip
+            self.attr_dicc['proxPort'] = puerto
+
+        if name == 'log':
+            path = attrs.get('path', "")
+            self.attr_dicc['logPath'] = path
+
+        if name == 'audio':
+            path = attrs.get('path', "")
+            self.attr_dicc['audioPath'] = path
+
+    def get_attrs(self):
+        """
+        Método que devuelve lista con atributos
+        """
+        return self.attr_dicc
+
+#--------------------------------- Métodos ------------------------------------
+def log_debug(oper, ip, port, msg):
+    """
+    Método para imprimir log en fichero de texto y debug por pantalla
     """
     formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    msgLine = msg.replace("\r\n", " ")
+    info = ''
+    if oper == 'send':
+        info = "Send to " + str(ip) + ':' + str(port) + ':'
+        print info + '\n' + msg
+    elif oper == 'receive':
+        info = "Received from " + str(ip) + ':' + str(port) + ':'
+        print info + '\n' + msg
+    elif oper == 'error':
+        print formatTime + ' ' + msg
     logFile = open(LOG_FILE, 'a')
-    logFile.write(formatTime + ' ' + event + '\n')
+    logFile.write(formatTime + ' ' + info + msgLine + '\n')
     logFile.close()
 
 #-----------------------------Programa principal-------------------------------
@@ -62,7 +123,7 @@ if __name__ == "__main__":
 
     # Parseo del fichero XML    
     parser = make_parser()
-    dataHandler = datahandler.DataHandler()
+    dataHandler = DataHandler()
     parser.setContentHandler(dataHandler)
     parser.parse(open(CONFIG))
 
@@ -79,4 +140,4 @@ if __name__ == "__main__":
     AUDIO_FILE = attr_dicc['audioPath']
 
     # Comenzando el programa...
-    log2file('Starting...')
+    log_debug('', '', '', 'Starting...')
