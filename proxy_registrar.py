@@ -30,6 +30,11 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
         clientIp = str(self.client_address[0])
         clientPort = str(self.client_address[1])
 
+        # Mensajes para depuración y log
+        sendTo = "Send to " + str(clientIp) + ':' + str(clientPort) + ':'
+        recvFrom = "Received from " + str(clientIp) + ':' + str(clientPort) \
+                 + ':'
+
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             request = self.rfile.read()
@@ -39,12 +44,7 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                 break
             else:
                 # Evaluación de los parámetros que nos envía el cliente
-                print "\nReceived from " + clientIp + ":" + clientPort + ':\n'\
-                      + request
-                reqstLine = request.replace("\r\n", " ")
-                event = "Received from " + str(clientIp) + ':' \
-                      + str(clientPort) + ': ' + reqstLine
-                log2file(event)
+                log_debug('receive', clientIp, clientPort, request)
                 try:
                     parameters = request.split()
                     method = parameters[0]
@@ -60,25 +60,15 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                         and client_version != 'SIP/2.0':
                         response = MY_VERSION + " 400 Bad Request\r\n\r\n"
                         self.wfile.write(response)
-                        print "Send to " + str(clientIp) + ':' \
-                              + str(clientPort) + ':\n' + response
-                        respLine = response.replace("\r\n", " ")
-                        event = "Send to " + str(clientIp) + ':' \
-                              + str(clientPort) + ': ' + respLine
-                        log2file(event)
+                        log_debug('send', clientIp, clientPort, response)
                         break
                 except:
                     response = MY_VERSION + " 400 Bad Request\r\n\r\n"
                     self.wfile.write(response)
-                    print "Send to " + str(clientIp) + ':' + str(clientPort) \
-                          + ':\n' + response
-                    respLine = response.replace("\r\n", " ")
-                    event = "Send to " + str(clientIp) + ':' + str(clientPort)\
-                          + ': ' + respLine
-                    log2file(event)
+                    log_debug('send', clientIp, clientPort, response)
                     break
 
-                # Evaluación del método que nos envía el cliente
+                # ------------------------- REGISTER --------------------------
                 if method == 'REGISTER':
                     expires = float(option)
 
@@ -91,26 +81,44 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                                           clientPort)
                         self.register2file()
                         print "Añadido el usuario " + address
+
                     # Borrado del usuario (si existe en el diccionario)
                     else:
                         found = 0
                         for user in users:
                             if address == user:
                                 found = 1
+                        # Usuario encontrado
                         if found:
                             del users[address]
                             self.register2file()
                             print "Eliminado el usuario " + address
+                        # Ususario no encontrado
                         else:
-                            print "El usuario no se encuentra en el registro"
+                            response = MY_VERSION \
+                                     + " 404 User Not Found\r\n\r\n"
+                            self.wfile.write(response)
+                            log_debug('send', clientIp, clientPort, response)
+                            break
+
+                    # Envío de "OK"
                     response = MY_VERSION + " 200 OK\r\n\r\n"
                     self.wfile.write(response)
-                    print "Send to " + str(clientIp) + ':' + str(clientPort) \
-                          + ':\n' + response
-                    respLine = response.replace("\r\n", " ")
-                    event = "Send to " + str(clientIp) + ':' + str(clientPort)\
-                          + ': ' + respLine
-                    log2file(event)
+                    log_debug('send', clientIp, clientPort, response)
+
+                # ------------------------- INVITE ----------------------------
+                elif method == 'INVITE':
+                    response = MY_VERSION + " 100 Trying\r\n\r\n"\
+                             + MY_VERSION + " 180 Ringing\r\n\r\n"\
+                             + MY_VERSION + " 200 OK\r\n\r\n"
+                    self.wfile.write(response)
+                    log_debug('send', clientIp, clientPort, response)
+
+                # -------------------- Método no permitido --------------------
+                else:
+                    response = MY_VERSION + " 405 Method Not Allowed\r\n\r\n"
+                    self.wfile.write(response)
+                    log_debug('send', clientIp, clientPort, response)
 
     def register2file(self):
         """
@@ -147,15 +155,24 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                 print "Tiempo expirado para " + address,
                 print "--> Usuario eliminado."
 
-
 #--------------------------------- Métodos ------------------------------------
-def log2file(event):
+def log_debug(oper, ip, port, msg):
     """
-    Método para imprimir mensajes de log en un fichero de texto
+    Método para imprimir log en fichero de texto y debug por pantalla
     """
     formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
+    msgLine = msg.replace("\r\n", " ")
+    info = ''
+    if oper == 'send':
+        info = "Send to " + str(ip) + ':' + str(port) + ':'
+        print info + '\n' + msg
+    elif oper == 'receive':
+        info = "Received from " + str(ip) + ':' + str(port) + ':'
+        print info + '\n' + msg
+    elif oper == 'error':
+        print formatTime + ' ' + msg
     logFile = open(LOG_FILE, 'a')
-    logFile.write(formatTime + ' ' + event + '\n')
+    logFile.write(formatTime + ' ' + info + msgLine + '\n')
     logFile.close()
 
 #-----------------------------Programa principal-------------------------------
@@ -170,7 +187,7 @@ if __name__ == "__main__":
     else:
         CONFIG = sys.argv[1]
 
-    # Parseo del fichero XML    
+    # Parseo del fichero XML
     parser = make_parser()
     dataHandler = datahandler.DataHandler()
     parser.setContentHandler(dataHandler)
@@ -186,7 +203,7 @@ if __name__ == "__main__":
     LOG_FILE = attr_dicc['logPath']
 
     # Comenzando el programa...
-    log2file('Starting...')
+    log_debug('', '', '', 'Starting...')
 
     # Creamos servidor de eco y escuchamos
     serv = SocketServer.UDPServer((MY_IP, MY_PORT), EchoHandler)
