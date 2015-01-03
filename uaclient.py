@@ -11,9 +11,6 @@ import time
 import uaserver
 
 
-# Variables globales
-response = ''
-
 #--------------------------------- Métodos ------------------------------------
 def log_debug(oper, ip, port, msg):
     """
@@ -23,46 +20,45 @@ def log_debug(oper, ip, port, msg):
     msgLine = msg.replace("\r\n", " ")
     info = ''
     if oper == 'send':
-        info = "Send to " + str(ip) + ':' + str(port) + ':'
+        info = "Send to " + str(ip) + ':' + str(port) + ': '
         print info + '\n' + msg
     elif oper == 'receive':
-        info = "Received from " + str(ip) + ':' + str(port) + ':'
+        info = "Received from " + str(ip) + ':' + str(port) + ': '
         print info + '\n' + msg
-    elif oper == 'error':
+    else:
         print formatTime + ' ' + msg
     logFile = open(LOG_FILE, 'a')
     logFile.write(formatTime + ' ' + info + msgLine + '\n')
     logFile.close()
 
-def send_receive(request, servIP, servPort):
+def send(my_socket, request, servIP, servPort):
     """
-    Método para enviar solicitur a un servidor y recibir respuesta del mismo
+    Método para enviar solicitur a un servidor
     """
-    # Creamos el socket, lo configuramos y lo atamos al servidor/puerto registrar
-    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Creamos el socket, lo configuramos y lo atamos al servidor/puerto
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((servIP, servPort))
-
     # Enviamos solicitud
-    formatTime = time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
     my_socket.send(request)
     log_debug('send', servIP, servPort, request)
 
+def receive(my_socket, servIP, servPort):
+    """
+    Método para recibir respuesta de un servidor
+    """
     # Recibimos respuesta
     try:
         response = my_socket.recv(1024)
     except socket.error:
         error_msg = "Error: No server listening at " + servIP  + " port " \
                   + str(servPort)
-        log_debug('error', '', '', error_msg)
+        log_debug('', '', '', error_msg)
         raise SystemExit
     log_debug('receive', servIP, servPort, response)
-
-    # Finalizamos programa
-    my_socket.close()
-    log_debug('', '', '', 'Finishing.')
+    return response
 
 #-----------------------------Programa principal-------------------------------
+# Versión del protocolo SIP
 VERSION = "SIP/2.0"
 
 # Parámetros del usuario
@@ -101,9 +97,12 @@ log_debug('', '', '', 'Starting...')
 if method == 'REGISTER':
 
     # Enviamos solicitud y recibimos respuesta
-    request = method + ' sip:' + MY_ADDRESS + ' ' + VERSION + '\r\n' \
+    request = method + ' sip:' + MY_ADDRESS + ':' + str(MY_SERVPORT) + ' ' + VERSION + '\r\n'\
             + 'Expires: ' + OPTION + '\r\n\r\n'
-    send_receive(request, PROX_IP, PROX_PORT)
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    send(my_socket, request, PROX_IP, PROX_PORT)
+    response = receive(my_socket, PROX_IP, PROX_PORT)
+    my_socket.close()
 
 #--------------------------------- INVITE -----------------------------------
 if method == 'INVITE':
@@ -113,11 +112,12 @@ if method == 'INVITE':
             + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' +  'o=' \
             + MY_ADDRESS + ' ' + MY_SERVIP + '\r\n' + 's=sesion_sip\r\n' \
             + 't=0\r\n' + 'm=audio ' + str(RTP_PORT) + ' RTP'
-    send_receive(request, PROX_IP, PROX_PORT)
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    send(my_socket, request, PROX_IP, PROX_PORT)
+    response = receive(my_socket, PROX_IP, PROX_PORT)
+    my_socket.close()
 
-    print '----------------------------------' + response
-
-    # Si recibimos confirmación de INVITE envíamos ACK y recibimos contenido
+    # Si recibimos confirmación de INVITE envíamos ACK y recibimos contenido        # ESTO VA AL UASERVER ?????
     response1 = "SIP/1.0 100 Trying\r\n\r\n" + "SIP/1.0 180 Ringing\r\n\r\n"\
               + "SIP/1.0 200 OK\r\n\r\n"
     response2 = "SIP/2.0 100 Trying\r\n\r\n" + "SIP/2.0 180 Ringing\r\n\r\n"\
@@ -125,4 +125,10 @@ if method == 'INVITE':
     if response == response1 or response == response2:
         method = 'ACK'
         request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n\r\n'
-        send_receive(request, PROX_IP, PROX_PORT, '')
+        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        send(my_socket, request, PROX_IP, PROX_PORT)
+        response = receive(my_socket, PROX_IP, PROX_PORT)
+        my_socket.close()
+
+# Finalizamos programa
+log_debug('', '', '', 'Finishing.')
