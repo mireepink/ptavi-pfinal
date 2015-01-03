@@ -10,11 +10,12 @@ import SocketServer
 import sys
 import os
 import time
+import socket
+
 
 # Variables globales
 users = {}
 LOG_FILE = ""
-
 
 #-------------------------------- Clases --------------------------------------
 class EchoHandler(SocketServer.DatagramRequestHandler):
@@ -32,23 +33,22 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
 
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
-            request = self.rfile.read()
+            self.request = self.rfile.read()
 
             # Si no hay más líneas salimos del bucle infinito
-            if not request:
+            if not self.request:
                 break
             else:
-                # Evaluación de los parámetros que nos envía el cliente
-                log_debug('receive', self.clientIP, self.clientPort, request)
+                # Evaluación parámetros genéricos enviados por cliente
+                log_debug('receive', self.clientIP, self.clientPort, self.request)
                 try:
-                    parameters = request.split()
-                    self.method = parameters[0]
-                    protocol = parameters[1].split(':')[0]
-                    self.address = parameters[1].split(':')[1]
-                    login = self.address.split('@')[0]
-                    server_ip = self.address.split('@')[1]
-                    client_version = parameters[2]
-                    self.option = parameters[4]
+                    self.parameters = self.request.split()
+                    self.method = self.parameters[0]
+                    protocol = self.parameters[1].split(':')[0]
+                    self.address = self.parameters[1].split(':')[1]
+                    user = self.address.split('@')[0]
+                    domain = self.address.split('@')[1]
+                    client_version = self.parameters[2]
 
                 # Envío de "Bad Request"
                     if protocol != 'sip' or client_version != 'SIP/1.0'\
@@ -70,9 +70,11 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
         """
         Método para evaluar método SIP recibido
         """
-        # ------------------------- REGISTER ----------------------------------
+        # -------------------------- REGISTRO ---------------------------------
         if self.method == 'REGISTER':
-            expires = float(self.option)
+            # Evaluación de puerto y parámetro opcional
+            server_port = self.parameters[1].split(':')[2]
+            expires = float(self.parameters[4])                                       # Contemplar "Bad Request"
 
             # Comprobamos caducidad de usuarios registrados
             self.check_expires()
@@ -80,9 +82,9 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
             # Registro del usuario
             if expires != 0:
                 users[self.address] = (self.clientIP, expires, time.time(),
-                                          self.clientPort)
+                                       server_port)
                 self.register2file()
-                print "Añadido el usuario " + self.address
+                print "Added user " + self.address + ':' + str(server_port)
                 # Envío de "OK"
                 response = MY_VERSION + " 200 OK\r\n\r\n"
                 self.wfile.write(response)
@@ -96,9 +98,9 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                         found = 1
                 # Usuario encontrado
                 if found:
+                    print "Deleted user " + self.address + ':' + users[self.address][3]
                     del users[self.address]
                     self.register2file()
-                    print "Eliminado el usuario " + self.address
                     # Envío de "OK"
                     response = MY_VERSION + " 200 OK\r\n\r\n"
                     self.wfile.write(response)
@@ -110,15 +112,26 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                     self.wfile.write(response)
                     log_debug('send', self.clientIP, self.clientPort, response)
 
-        # ------------------------- INVITE ------------------------------------
-        elif self.method == 'INVITE':
-            # Envío de "Trying, Ringing, OK"
-            response = MY_VERSION + " 100 Trying\r\n\r\n"\
-                     + MY_VERSION + " 180 Ringing\r\n\r\n"\
-                     + MY_VERSION + " 200 OK\r\n\r\n"
+        # ----------------------- REENVÍO DE MENSAJES -------------------------
+        elif self.method == 'INVITE' or self.method == 'ACK'\
+             or self.method == 'BYE':
+                # Evaluación parámetros SDP
+#                orig_address = self.parameters[6].split('=')[1]                # Esto va en uaserver"
+#                orig_IP = self.parameters[7]
+#                media = self.parameters[10].split('=')[1]
+            # Buscamos IP y puerto del UA destino
+            for user in users:
+                if self.address == user:
+                    ua_destIP = users[user][0]
+                    ua_destPort = int(users[user][3])
+            # Reenvío de solicitud al UA destino
+            my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            send(my_socket, self.request, ua_destIP, ua_destPort)
+            response = receive(my_socket, ua_destIP, ua_destPort)
+            my_socket.close()
+            # Reenvío de respuesta al UA origen
             self.wfile.write(response)
             log_debug('send', self.clientIP, self.clientPort, response)
-
         # -------------------- Método no permitido ----------------------------
         else:
             # Envío de "Method Not Allowed"
@@ -208,16 +221,43 @@ def log_debug(oper, ip, port, msg):
     msgLine = msg.replace("\r\n", " ")
     info = ''
     if oper == 'send':
-        info = "Send to " + str(ip) + ':' + str(port) + ':'
+        info = "Send to " + str(ip) + ':' + str(port) + ': '
         print info + '\n' + msg
     elif oper == 'receive':
-        info = "Received from " + str(ip) + ':' + str(port) + ':'
+        info = "Received from " + str(ip) + ':' + str(port) + ': '
         print info + '\n' + msg
-    elif oper == 'error':
+    else:
         print formatTime + ' ' + msg
     logFile = open(LOG_FILE, 'a')
     logFile.write(formatTime + ' ' + info + msgLine + '\n')
     logFile.close()
+
+def send(my_socket, request, servIP, servPort):
+    """
+    Método para enviar solicitur a un servidor
+    """
+    # Creamos el socket, lo configuramos y lo atamos al servidor/puerto
+    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    my_socket.connect((servIP, servPort))
+    # Enviamos solicitud
+    my_socket.send(request)
+    log_debug('send', servIP, servPort, request)
+
+def receive(my_socket, servIP, servPort):
+    """
+    Método para recibir respuesta de un servidor
+    """
+    # Recibimos respuesta
+    try:
+        response = my_socket.recv(1024)
+    except socket.error:
+        error_msg = "Error: No server listening at " + servIP  + " port " \
+                  + str(servPort)
+        log_debug('', '', '', error_msg)
+        raise SystemExit
+    log_debug('receive', servIP, servPort, response)
+    print "Socket closed."
+    return response
 
 #-----------------------------Programa principal-------------------------------
 if __name__ == "__main__":
@@ -251,5 +291,5 @@ if __name__ == "__main__":
 
     # Creamos servidor de eco y escuchamos
     serv = SocketServer.UDPServer((MY_IP, MY_PORT), EchoHandler)
-    print "Server " + SERVERNAME + " listening at port " + str(MY_PORT) + "..."
+    print "Server " + SERVERNAME + " listening at " + MY_IP + ':' + str(MY_PORT) + "..."
     serv.serve_forever()
