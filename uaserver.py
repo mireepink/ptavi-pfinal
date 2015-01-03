@@ -22,21 +22,64 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
         """
         Método para recibir en el manejador y establecer comunicación SIP
         """
-        # Escribe dirección y puerto del cliente (de tupla client_address)
-        client_ip = str(self.client_address[0])
-        client_port = str(self.client_address[1])
-        print "IP cliente: " + client_ip + "| Puerto cliente: " + client_port
+        # IP y puerto del cliente (de tupla client_address)
+        self.clientIP = str(self.client_address[0])
+        self.clientPort = str(self.client_address[1])
 
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
-            line = self.rfile.read()
+            request = self.rfile.read()
 
             # Si no hay más líneas salimos del bucle infinito
-            if not line:
+            if not request:
                 break
             else:
-                # Evaluación de los parámetros que nos envía el cliente
-                print "Recibido:\n" + line
+                # Evaluación parámetros obligatorios enviados por cliente
+                log_debug('receive', self.clientIP, self.clientPort, request)
+                try:
+                    self.parameters = request.split()
+                    self.method = self.parameters[0]
+                    protocol = self.parameters[1].split(':')[0]
+                    self.address = self.parameters[1].split(':')[1]
+                    login = self.address.split('@')[0]
+                    server_ip = self.address.split('@')[1]
+                    client_version = self.parameters[2]
+
+                # Envío de "Bad Request"
+                    if protocol != 'sip' or client_version != 'SIP/1.0'\
+                        and client_version != 'SIP/2.0':
+                        response = MY_VERSION + " 400 Bad Request\r\n\r\n"
+                        self.wfile.write(response)
+                        log_debug('send', self.clientIP, self.clientPort, response)
+                        break
+                except:
+                    response = MY_VERSION + " 400 Bad Request\r\n\r\n"
+                    self.wfile.write(response)
+                    log_debug('send', self.clientIP, self.clientPort, response)
+                    break
+
+                # Evaluación del método SIP recibido
+                self.checkmethod()
+
+    def checkmethod(self):
+        """
+        Método para evaluar método SIP recibido
+        """
+        # ------------------------- INVITE ------------------------------------
+        if self.method == 'INVITE':
+            # Envío de "Trying, Ringing, OK"
+            response = MY_VERSION + " 100 Trying\r\n\r\n"\
+                     + MY_VERSION + " 180 Ringing\r\n\r\n"\
+                     + MY_VERSION + " 200 OK\r\n\r\n"
+            self.wfile.write(response)
+            log_debug('send', self.clientIP, self.clientPort, response)
+
+        # -------------------- Método no permitido ----------------------------
+        else:
+            # Envío de "Method Not Allowed"
+            response = MY_VERSION + " 405 Method Not Allowed\r\n\r\n"
+            self.wfile.write(response)
+            log_debug('send', self.clientIP, self.clientPort, response)
 
 class DataHandler(ContentHandler):
     """
@@ -98,12 +141,12 @@ def log_debug(oper, ip, port, msg):
     msgLine = msg.replace("\r\n", " ")
     info = ''
     if oper == 'send':
-        info = "Send to " + str(ip) + ':' + str(port) + ':'
+        info = "Send to " + str(ip) + ':' + str(port) + ': '
         print info + '\n' + msg
     elif oper == 'receive':
-        info = "Received from " + str(ip) + ':' + str(port) + ':'
+        info = "Received from " + str(ip) + ':' + str(port) + ': '
         print info + '\n' + msg
-    elif oper == 'error':
+    else:
         print formatTime + ' ' + msg
     logFile = open(LOG_FILE, 'a')
     logFile.write(formatTime + ' ' + info + msgLine + '\n')
@@ -111,7 +154,6 @@ def log_debug(oper, ip, port, msg):
 
 #-----------------------------Programa principal-------------------------------
 if __name__ == "__main__":
-
     # Versión del protocolo SIP
     MY_VERSION = "SIP/2.0"
 
@@ -132,7 +174,7 @@ if __name__ == "__main__":
     USER_NAME = attr_dicc['userName']
     USER_PASS = attr_dicc['userPass']
     MY_IP = attr_dicc['servIp']
-    MY_PORT = attr_dicc['servPort']
+    MY_PORT = int(attr_dicc['servPort'])
     RTP_PORT = attr_dicc['rtpPort']
     PROX_IP = attr_dicc['proxIp']
     PROX_PORT = attr_dicc['proxPort']
@@ -141,3 +183,8 @@ if __name__ == "__main__":
 
     # Comenzando el programa...
     log_debug('', '', '', 'Starting...')
+
+    # Creamos servidor de eco y escuchamos
+    serv = SocketServer.UDPServer((MY_IP, MY_PORT), EchoHandler)
+    print "UA Server listening at " + MY_IP + ':' + str(MY_PORT) + "..."
+    serv.serve_forever()
