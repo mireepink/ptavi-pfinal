@@ -18,9 +18,9 @@
 ]>
 <config>
     <account username="user1" passwd="pass1" />
-    <uaserver ip="127.0.0.1" puerto="1000" />
+    <uaserver ip="127.0.0.1" puerto="1111" />
     <rtpaudio puerto="1100" />
-    <regproxy ip="127.0.0.3" puerto="3000" />
+    <regproxy ip="127.0.0.1" puerto="3333" />
     <log path="ua1log.txt" />
     <audio path="cancion.mp3" />
 </config>
