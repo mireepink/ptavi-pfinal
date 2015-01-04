@@ -107,27 +107,37 @@ if method == 'REGISTER':
 #--------------------------------- INVITE -----------------------------------
 if method == 'INVITE':
 
-    # Enviamos solicitud y recibimos respuesta
+    # Envío de mensaje INVITE y recepción de respuesta (a través de Proxy)
     request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n' \
             + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' +  'o=' \
             + MY_ADDRESS + ' ' + MY_SERVIP + '\r\n' + 's=sesion_sip\r\n' \
-            + 't=0\r\n' + 'm=audio ' + str(RTP_PORT) + ' RTP'
+            + 't=0\r\n' + 'm=audio ' + str(RTP_PORT) + ' RTP\r\n'
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     send(my_socket, request, PROX_IP, PROX_PORT)
     response = receive(my_socket, PROX_IP, PROX_PORT)
     my_socket.close()
 
-    # Si recibimos confirmación de INVITE envíamos ACK y recibimos contenido        # ESTO VA AL UASERVER ?????
-    response1 = "SIP/1.0 100 Trying\r\n\r\n" + "SIP/1.0 180 Ringing\r\n\r\n"\
-              + "SIP/1.0 200 OK\r\n\r\n"
-    response2 = "SIP/2.0 100 Trying\r\n\r\n" + "SIP/2.0 180 Ringing\r\n\r\n"\
-              + "SIP/2.0 200 OK\r\n\r\n"
-    if response == response1 or response == response2:
+    # Evaluación de respuesta al INVITE
+    head = response[0:94]
+    body = response[94:]
+    head1 = "SIP/1.0 100 Trying\r\n\r\n" + "SIP/1.0 180 Ringing\r\n\r\n"\
+          + "SIP/1.0 200 OK\r\nContent-Type: application/sdp\r\n\r\n"
+    head2 = "SIP/2.0 100 Trying\r\n\r\n" + "SIP/2.0 180 Ringing\r\n\r\n"\
+          + "SIP/2.0 200 OK\r\nContent-Type: application/sdp\r\n\r\n"
+    if head == head1 or head == head2:
+        # Evaluación de los parámetros SDP
+        sdp_list = body.split()
+        orig_address = sdp_list[1].split('=')[1]
+        uaorig_IP = sdp_list[2]
+        media_type = sdp_list[5].split('=')[1]
+        media_port = sdp_list[6]
+
+        # Envío de ACK (a través de Proxy)
         method = 'ACK'
         request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n\r\n'
         my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         send(my_socket, request, PROX_IP, PROX_PORT)
-        response = receive(my_socket, PROX_IP, PROX_PORT)
+        my_socket.close()
         my_socket.close()
 
 # Finalizamos programa
