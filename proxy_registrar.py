@@ -42,13 +42,13 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                 # Evaluación parámetros genéricos enviados por cliente
                 log_debug('receive', self.clientIP, self.clientPort, self.request)
                 try:
-                    self.parameters = self.request.split()
-                    self.method = self.parameters[0]
-                    protocol = self.parameters[1].split(':')[0]
-                    self.address = self.parameters[1].split(':')[1]
+                    self.request_list = self.request.split()
+                    self.method = self.request_list[0]
+                    protocol = self.request_list[1].split(':')[0]
+                    self.address = self.request_list[1].split(':')[1]
                     user = self.address.split('@')[0]
                     domain = self.address.split('@')[1]
-                    client_version = self.parameters[2]
+                    client_version = self.request_list[2]
 
                 # Envío de "Bad Request"
                     if protocol != 'sip' or client_version != 'SIP/1.0'\
@@ -73,8 +73,8 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
         # -------------------------- REGISTRO ---------------------------------
         if self.method == 'REGISTER':
             # Evaluación de puerto y parámetro opcional
-            server_port = self.parameters[1].split(':')[2]
-            expires = float(self.parameters[4])                                       # Contemplar "Bad Request"
+            server_port = self.request_list[1].split(':')[2]
+            expires = float(self.request_list[4])                                       # Contemplar "Bad Request"
 
             # Comprobamos caducidad de usuarios registrados
             self.check_expires()
@@ -112,13 +112,8 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                     self.wfile.write(response)
                     log_debug('send', self.clientIP, self.clientPort, response)
 
-        # ----------------------- REENVÍO DE MENSAJES -------------------------
-        elif self.method == 'INVITE' or self.method == 'ACK'\
-             or self.method == 'BYE':
-                # Evaluación parámetros SDP
-#                orig_address = self.parameters[6].split('=')[1]                # Esto va en uaserver"
-#                orig_IP = self.parameters[7]
-#                media = self.parameters[10].split('=')[1]
+        # ----------------------- REENVÍO DE INVITE y BYE ---------------------
+        elif self.method == 'INVITE' or self.method == 'BYE':
             # Buscamos IP y puerto del UA destino
             for user in users:
                 if self.address == user:
@@ -132,6 +127,19 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
             # Reenvío de respuesta al UA origen
             self.wfile.write(response)
             log_debug('send', self.clientIP, self.clientPort, response)
+
+        # ------------------------- REENVÍO DE ACK ----------------------------
+        elif self.method == 'ACK':
+            # Buscamos IP y puerto del UA destino
+            for user in users:
+                if self.address == user:
+                    ua_destIP = users[user][0]
+                    ua_destPort = int(users[user][3])
+            # Reenvío de solicitud al UA destino
+            my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            send(my_socket, self.request, ua_destIP, ua_destPort)
+            my_socket.close()
+
         # -------------------- Método no permitido ----------------------------
         else:
             # Envío de "Method Not Allowed"
@@ -256,7 +264,6 @@ def receive(my_socket, servIP, servPort):
         log_debug('', '', '', error_msg)
         raise SystemExit
     log_debug('receive', servIP, servPort, response)
-    print "Socket closed."
     return response
 
 #-----------------------------Programa principal-------------------------------
