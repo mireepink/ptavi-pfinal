@@ -1,0 +1,8 @@
+<config>
+    <account username="damonsalvatore@vampirediaries.com" />
+    <uaserver ip="127.0.0.1" puerto="5464" />
+    <rtpaudio puerto="3246" />
+    <regproxy ip="127.0.0.1" puerto="2272" />
+    <log path="log.txt" />
+    <audio path="cancion.mp3" />
+</config>
