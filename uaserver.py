@@ -119,6 +119,12 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
             os.system(toRun)
             print "Finalizado envío RTP"
 
+        # ---------------------------- BYE ------------------------------------
+        elif self.method == 'BYE':
+            response = MY_VERSION + " 200 OK\r\n\r\n"
+            self.wfile.write(response)
+            log_debug('send', self.clientIP, self.clientPort, response)
+
         # -------------------- Método no permitido ----------------------------
         else:
             # Envío de "Method Not Allowed"
