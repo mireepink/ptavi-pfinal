@@ -114,19 +114,28 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
 
         # ----------------------- REENVÍO DE INVITE y BYE ---------------------
         elif self.method == 'INVITE' or self.method == 'BYE':
-            # Buscamos IP y puerto del UA destino
+            found = 0
             for user in users:
                 if self.address == user:
-                    ua_destIP = users[user][0]
-                    ua_destPort = int(users[user][3])
-            # Reenvío de solicitud al UA destino
-            my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            send(my_socket, self.request, ua_destIP, ua_destPort)
-            response = receive(my_socket, ua_destIP, ua_destPort)
-            my_socket.close()
-            # Reenvío de respuesta al UA origen
-            self.wfile.write(response)
-            log_debug('send', self.clientIP, self.clientPort, response)
+                    found = 1
+            # UA destino registrado
+            if found:
+                ua_destIP = users[self.address][0]
+                ua_destPort = int(users[self.address][3])
+                # Reenvío de solicitud al UA destino
+                my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                send(my_socket, self.request, ua_destIP, ua_destPort)
+                response = receive(my_socket, ua_destIP, ua_destPort)
+                my_socket.close()
+                # Reenvío de respuesta al UA origen
+                self.wfile.write(response)
+                log_debug('send', self.clientIP, self.clientPort, response)
+            # UA destino no registrado
+            if not found:
+                # Envío de "Not Found"
+                response = MY_VERSION + " 404 User Not Found\r\n\r\n"
+                self.wfile.write(response)
+                log_debug('send', self.clientIP, self.clientPort, response)
 
         # ------------------------- REENVÍO DE ACK ----------------------------
         elif self.method == 'ACK':
