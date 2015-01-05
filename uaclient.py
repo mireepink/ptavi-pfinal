@@ -9,6 +9,7 @@ import socket
 import sys
 import time
 import uaserver
+import os
 
 
 #--------------------------------- Métodos ------------------------------------
@@ -95,7 +96,6 @@ log_debug('', '', '', 'Starting...')
 
 #--------------------------------- REGISTER -----------------------------------
 if method == 'REGISTER':
-
     # Enviamos solicitud y recibimos respuesta
     request = method + ' sip:' + MY_ADDRESS + ':' + str(MY_SERVPORT) + ' ' + VERSION + '\r\n'\
             + 'Expires: ' + OPTION + '\r\n\r\n'
@@ -106,7 +106,6 @@ if method == 'REGISTER':
 
 #--------------------------------- INVITE -----------------------------------
 if method == 'INVITE':
-
     # Envío de mensaje INVITE y recepción de respuesta (a través de Proxy)
     request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n' \
             + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' +  'o=' \
@@ -116,7 +115,6 @@ if method == 'INVITE':
     send(my_socket, request, PROX_IP, PROX_PORT)
     response = receive(my_socket, PROX_IP, PROX_PORT)
     my_socket.close()
-
     # Evaluación de respuesta al INVITE
     head = response[0:94]
     body = response[94:]
@@ -128,16 +126,21 @@ if method == 'INVITE':
         # Evaluación de los parámetros SDP
         sdp_list = body.split()
         orig_address = sdp_list[1].split('=')[1]
-        uaorig_IP = sdp_list[2]
+        uadest_IP = sdp_list[2]
         media_type = sdp_list[5].split('=')[1]
-        media_port = sdp_list[6]
-
+        uadest_mediaport = sdp_list[6]
         # Envío de ACK (a través de Proxy)
         method = 'ACK'
         request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n\r\n'
         my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         send(my_socket, request, PROX_IP, PROX_PORT)
         my_socket.close()
+        # ------------------------- Envío RTP ---------------------------------
+        toRun = "./mp32rtp -i " + uadest_IP + " -p " + uadest_mediaport + " < " + AUDIO_FILE
+        log_debug('send', uadest_IP, uadest_mediaport, AUDIO_FILE)
+        print "Sending RTP content to client..."
+        os.system(toRun)
+        print "Finalizado envío RTP"
 
 if method == 'BYE':
     # Envío de mensaje BYE y recepción de respuesta (a través de Proxy)
