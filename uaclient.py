@@ -138,7 +138,14 @@ if method == 'INVITE':
         my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         send(my_socket, request, PROX_IP, PROX_PORT)
         my_socket.close()
-        my_socket.close()
+
+if method == 'BYE':
+    # Envío de mensaje BYE y recepción de respuesta (a través de Proxy)
+    request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n\r\n'
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    send(my_socket, request, PROX_IP, PROX_PORT)
+    response = receive(my_socket, PROX_IP, PROX_PORT)
+    my_socket.close()
 
 # Finalizamos programa
 log_debug('', '', '', 'Finishing.')
