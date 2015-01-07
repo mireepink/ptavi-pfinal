@@ -17,10 +17,10 @@
     <!ATTLIST audio path CDATA #REQUIRED>
 ]>
 <config>
-    <account username="user2" passwd="pass2" />
-    <uaserver ip="127.0.0.1" puerto="2222" />
+    <account username="user2" />
+    <uaserver puerto="2222" />
     <rtpaudio puerto="2100" />
-    <regproxy ip="127.0.0.1" puerto="3333" />
+    <regproxy ip="127.0.0.1" puerto="5200" />
     <log path="ua2log.txt" />
-    <audio path="cancion.mp3" />
+    <audio path="audio_user2_to_user1.mp3" />
 </config>
