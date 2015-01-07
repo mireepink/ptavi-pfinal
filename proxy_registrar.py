@@ -27,31 +27,34 @@ class Proxy(SocketServer.DatagramRequestHandler):
                 break
             line_list = line.split(' ')
             IP = self.client_address[0]
-            if line_list[0] == 'REGISTER':
-                fich.write(str(time.time()) + " Starting..." + '\r\n')
+            if line_list[0] == 'Bad_Request':
+                print 'SIP/2.0 400 Bad Request' + '\r\n\r\n'
+                self.wfile.write('SIP/2.0 400 Bad Request' + '\r\n\r\n')
+            elif line_list[0] == 'REGISTER':
+                print line
                 direccion = line_list[1].split(':')[1]
                 expires = int(line_list[4])
                 if expires == '0':
                     fich.write(str(time.time()) + " Finishing..." + '\r\n')
                     fich.close()
+                else:
+                    fich.write(str(time.time()) + " Starting..." + '\r\n')
+                    fich.write(str(time.time()) + " Registrado " + direccion + '\r\n')
                 port = int(line_list[1].split(':')[2])
                 timenow = time.time()
                 timexp = timenow + expires
                 valores = [IP, port, timenow, timexp]
                 diccionario[direccion] = valores
-                print diccionario
-                print "Enviando ", "SIP/2.0 200 OK" + " REGISTER" + '\r\n\r\n'
+                print "Enviando ", "SIP/2.0 200 OK" + '\r\n\r\n'
                 self.wfile.write("SIP/2.0 200 OK" + '\r\n\r\n')
                 self.register2file()
-                fich.write(str(time.time()) + " Registrado " + direccion + '\r\n')
                 for direccion in diccionario.keys():
                     if timenow >= diccionario[direccion][3]:
                         del diccionario[direccion]
                         print direccion + " ha sido borrado" + '\r\n'
-                        print diccionario
                 self.register2file()
             elif line_list[0] == 'INVITE':
-                Destinatario = line.split(' ')[2]
+                Destinatario = line_list[2]
                 self.Buscar_y_enviar()
                 if Continuar == True:
                     continue
@@ -64,12 +67,17 @@ class Proxy(SocketServer.DatagramRequestHandler):
                     continue
             elif line_list[0] == 'BYE':
                 print line
-                bye = line.split(' ')[1]
+                bye = line_list[1]
                 Destinatario = bye.split(':')[1]
                 self.Buscar_y_enviar()
                 if Continuar == True:
                     continue
-
+            elif not line_list[0] in Lista:
+                Destinatario = line_list[1]
+                self.Buscar_y_enviar()
+                if Continuar == True:
+                    continue
+            
     def register2file(self):
         """
         Su función es la de escribir en el fichero los usuarios
@@ -106,20 +114,23 @@ class Proxy(SocketServer.DatagramRequestHandler):
                 my_socket.send(line)
                 myline = my_socket.recv(1024)
                 if line_list[0] == 'INVITE':
-                    fich.write(str(time.time()) + 'Recibido INVITE para ' + Destinatario + '\r\n')
-                    fich.write(str(time.time()) + line)
+                    fich.write(str(time.time()) + ' Recibido ' + line + '\r\n')
                     rcv_invite = myline.split('\r\n\r\n')[0:-1]
                     rcv_invite1 = rcv_invite[0:3]
                     rcv_invite2 = str(rcv_invite1)
-                    fich.write(str(time.time()) + 'Recibido ' + rcv_invite2 + ' de ' + Destinatario + '\r\n')
-                    fich.write(str(time.time()) + 'Enviando respuesta ' + rcv_invite2 + '\r\n')
+                    fich.write(str(time.time()) + ' Enviando respuesta de ' + Destinatario + ': ' + rcv_invite2 + '\r\n')
                     self.wfile.write(myline)
                 elif line_list[0] == 'ACK':
-                    fich.write(str(time.time()) + 'Recibido ACK para ' + Destinatario + '\r\n')
+                    fich.write(str(time.time()) + ' Recibido ACK sip: ' + Destinatario + '\r\n')
                 elif line_list[0] == 'BYE':
-                    print myline
-                    fich.write(str(time.time()) + 'Recibido BYE para ' + Destinatario + '\r\n')
+                    print 'Eviando ' + myline
+                    fich.write(str(time.time()) + ' Recibido BYE sip: ' + Destinatario + '\r\n')
                     self.wfile.write(myline)
+                elif not line_list[0] in Lista:
+                    print myline
+                    fich.write(str(time.time()) + " " + myline + '\r\n')
+                    self.wfile.write(myline)
+                
         if Client != Destinatario:
             self.wfile.write("SIP/2.0 404 User Not Found")
             Continuar = True
@@ -160,7 +171,7 @@ if __name__ == "__main__":
     log = line_log[0].split("=")[1]
     PATH_LOGPROX = log.split(" ")[0][1:-1]
 
-    fich = open(PATH_LOGPROX, 'r+')
+    fich = open(PATH_LOGPROX, 'a')
 
     print "Server: " + SERVIDOR + " listening at port " + PUERTO_PROX + "..." + '\r\n'
     proxy_serv = SocketServer.UDPServer(("127.0.0.1", int(PUERTO_PROX)), Proxy)
