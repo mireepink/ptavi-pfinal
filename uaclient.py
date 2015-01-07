@@ -97,7 +97,7 @@ if METOD == 'REGISTER':
     print LINEA
     dataf(my_socket)
     rcv_register = data.split('\r\n\r\n')[0:-1]
-    if rcv_register == ['SIP/2.0 200 OK']:
+    if rcv_register == ['PROXY: SIP/2.0 200 OK']:
         print "Recibido --", data
         fich.write(str(time.time()) + " Received from " + IP_PROXY + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
 
@@ -119,14 +119,14 @@ if METOD == 'INVITE':
     fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + LINEA + '\r\n')
     print LINEA
     dataf(my_socket)
-    
+
     try:
         if data != "SIP/2.0 404 User Not Found":
             Puerto_RTP = data.split(' ')[14]
             rcv_invite = data.split('\r\n\r\n')[0:-1]
             rcv_invite1 = rcv_invite[0:3]
             rcv_invite2 = str(rcv_invite1)
-            print 'Recibido ' + rcv_invite2
+            print 'Recibido PROXY: ' + rcv_invite2
             fich.write(str(time.time()) + " Received from " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + rcv_invite2 + '\r\n')
             METOD = 'ACK'
             NEWLINE = METOD + ' sip:' + OPTION + ' SIP/2.0\r\n'
@@ -148,12 +148,12 @@ if METOD == 'BYE':
     fich = open(PATH_LOG, 'a')
     Sent_BYE = 'BYE ' + "sip:" + OPTION + " SIP/2.0" + '\r\n'
     print Sent_BYE
-    LINEA = Sent_BYE + '\r\n\r\n'
-    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + Sent_BYE)
+    LINEA = Sent_BYE
+    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + Sent_BYE + '\r\n')
     dataf(my_socket)
 
     rcv_bye = data.split('\r\n\r\n')[0:-1]
-    if rcv_bye == ['SIP/2.0 200 OK']:
+    if rcv_bye == ['PROXY: SIP/2.0 200 OK']:
         fich.write(str(time.time()) + " Received from " + IP_PROXY + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
         fich.close()
         print data
