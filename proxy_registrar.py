@@ -84,15 +84,15 @@ class Proxy(SocketServer.DatagramRequestHandler):
         Su función es la de escribir en el fichero los usuarios
         con su IP y tiempo
         """
-        fich = open(PATH_DATABASE, 'w')
-        fich.write("User\tIP\tPuerto\tFecha de Registro\tExpires\r\n")
+        #fich1 = open(PATH_DATABASE, 'r+')
+        fich1.write("User\tIP\tPuerto\tFecha de Registro\tExpires\r\n")
         for Client in diccionario.keys():
             IP = diccionario[Client][0]
             port = diccionario[Client][1]
             timenow = diccionario[Client][2]
             timexp = diccionario[Client][3]
-            fich.write(Client + '\t' + IP + '\t' + str(port) + '\t' + str(timenow) + '\t' + str(timexp) + '\r\n')
-        fich.close()
+            fich1.write(Client + '\t' + IP + '\t' + str(port) + '\t' + str(timenow) + '\t' + str(timexp) + '\r\n')
+       # fich1.close()
 
     def Buscar_y_enviar(self):
         """
@@ -103,11 +103,13 @@ class Proxy(SocketServer.DatagramRequestHandler):
         global Continuar, Destinatario, line
         line_list = line.split(' ')
         Client = ' '
-        for clave in diccionario:
-            if clave == Destinatario:
+        Fichero = fich1.readlines()
+        for linea in Fichero:
+            Usuario = linea.split('\t')[0]
+            if Usuario == Destinatario:
                 Client = Destinatario
-                TO_IP = diccionario[clave][0]
-                TO_PUERTO = diccionario[clave][1]
+                TO_IP = linea.split('\t')[1]
+                TO_PUERTO = linea.split('\t')[2]
                 #Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
                 my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -135,6 +137,7 @@ class Proxy(SocketServer.DatagramRequestHandler):
         if Client != Destinatario:
             self.wfile.write("SIP/2.0 404 User Not Found")
             Continuar = True
+
 
 if __name__ == "__main__":
     """
@@ -173,6 +176,7 @@ if __name__ == "__main__":
     PATH_LOGPROX = log.split(" ")[0][1:-1]
 
     fich = open(PATH_LOGPROX, 'a')
+    fich1 = open(PATH_DATABASE, 'r+')
 
     print "Server: " + SERVIDOR + " listening at port " + PUERTO_PROX + "..." + '\r\n'
     proxy_serv = SocketServer.UDPServer(("127.0.0.1", int(PUERTO_PROX)), Proxy)
