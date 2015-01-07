@@ -32,10 +32,6 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
         self.clientIP = str(self.client_address[0])
         self.clientPort = str(self.client_address[1])
 
-        # Inicializando variables SDP
-        self.orig_address = ''
-        self.media_type = ''
-
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             self.request = self.rfile.read()
@@ -51,8 +47,6 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                     self.method = self.request_list[0]
                     protocol = self.request_list[1].split(':')[0]
                     self.address = self.request_list[1].split(':')[1]
-                    user = self.address.split('@')[0]
-                    domain = self.address.split('@')[1]
                     client_version = self.request_list[2]
 
                 # Envío de "Bad Request"
@@ -79,16 +73,10 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
         if self.method == 'INVITE':
             # Evaluación de cabecera y cuerpo del mensaje
             try:
-                head = self.request[0:71]
-                body = self.request[71:]
-                head_list = head.split()
                 # Evaluación de parámetros SDP
-                if head_list[4] == 'application/sdp':
-                    sdp_list = body.split()
-                    self.orig_address = sdp_list[1].split('=')[1]
-                    uaorig_IP = sdp_list[2]
-                    self.media_type = sdp_list[5].split('=')[1]
-                    uaorig_mediaport = sdp_list[6]
+                if self.request_list[4] == 'application/sdp':
+                    uaorig_IP = self.request_list[7]
+                    uaorig_mediaport = self.request_list[11]
                     global uaorig_tuple
                     uaorig_tuple = (uaorig_IP, uaorig_mediaport)
             # Envío de "Bad Request"
@@ -115,9 +103,9 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
             uaorig_mediaport = uaorig_tuple[1]
             toRun = "./mp32rtp -i " + uaorig_IP + " -p " + uaorig_mediaport + " < " + AUDIO_FILE
             log_debug('send', uaorig_IP, uaorig_mediaport, AUDIO_FILE)
-            print "Sending RTP content to client..."
+            print "Sending RTP audio to UA..."
             os.system(toRun)
-            print "Finalizado envío RTP"
+            print "Sending RTP audio completed."
 
         # ---------------------------- BYE ------------------------------------
         elif self.method == 'BYE':
@@ -154,7 +142,7 @@ class DataHandler(ContentHandler):
             self.attr_dicc['userPass'] = passwd
 
         if name == 'uaserver':
-            ip = attrs.get('ip', "")
+            ip = attrs.get('ip', "127.0.0.1")
             puerto = attrs.get('puerto', "")
             self.attr_dicc['servIp'] = ip
             self.attr_dicc['servPort'] = puerto
@@ -233,7 +221,7 @@ if __name__ == "__main__":
     AUDIO_FILE = attr_dicc['audioPath']
 
     # Dirección SIP
-    MY_ADDRESS = MY_USERNAME + '@dominio.net'
+    MY_ADDRESS = MY_USERNAME + '@dominio.com'
 
     # Comenzando el programa...
     log_debug('', '', '', 'Starting...')
