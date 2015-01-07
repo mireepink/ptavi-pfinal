@@ -89,7 +89,7 @@ LOG_FILE = attr_dicc['logPath']
 AUDIO_FILE = attr_dicc['audioPath']
 
 # Dirección SIP
-MY_ADDRESS = MY_USERNAME + '@dominio.net'
+MY_ADDRESS = MY_USERNAME + '@dominio.com'
 
 # Comenzando el programa...
 log_debug('', '', '', 'Starting...')
@@ -138,9 +138,9 @@ if method == 'INVITE':
         # ------------------------- Envío RTP ---------------------------------
         toRun = "./mp32rtp -i " + uadest_IP + " -p " + uadest_mediaport + " < " + AUDIO_FILE
         log_debug('send', uadest_IP, uadest_mediaport, AUDIO_FILE)
-        print "Sending RTP content to client..."
+        print "Sending RTP audio to UA..."
         os.system(toRun)
-        print "Finalizado envío RTP"
+        print "Sending RTP audio completed."
 
 if method == 'BYE':
     # Envío de mensaje BYE y recepción de respuesta (a través de Proxy)
