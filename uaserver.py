@@ -100,9 +100,12 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 log_debug('send', self.clientIP, self.clientPort, response)
         # ---------------------------- ACK ------------------------------------
         elif self.method == 'ACK':
-            # --------------------- Envío RTP ---------------------------------
             uadest_IP = uaorig_tuple[0]
             uadest_mediaport = uaorig_tuple[1]
+            # Escucha con (c)vlc en background del audio enviado (OPCIONAL)
+            toRun = "cvlc rtp://@" + uadest_IP + ":" + uadest_mediaport + "&"
+            os.system(toRun)
+            # --------------------- Envío RTP ---------------------------------
             toRun = "./mp32rtp -i " + uadest_IP + " -p " + uadest_mediaport \
                   + " < " + AUDIO_FILE
             log_debug('send', uadest_IP, uadest_mediaport, AUDIO_FILE)
