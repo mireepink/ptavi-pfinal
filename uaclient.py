@@ -61,7 +61,6 @@ def receive(my_socket, servIP, servPort):
 #-----------------------------Programa principal-------------------------------
 # Versión del protocolo SIP
 VERSION = "SIP/2.0"
-
 # Parámetros del usuario
 if len(sys.argv) != 4:
     sys.exit("Usage: python uaclient.py config method option")
@@ -69,15 +68,13 @@ else:
     CONFIG = sys.argv[1]
     method = sys.argv[2].upper()
     OPTION = sys.argv[3]
-
 # Parseo del fichero XML    
 parser = make_parser()
-dataHandler = uaserver.DataHandler()
-parser.setContentHandler(dataHandler)
+xmlHandler_obj = uaserver.XMLHandler()
+parser.setContentHandler(xmlHandler_obj)
 parser.parse(open(CONFIG))
-
 # Lectura del archivo de configuración UA
-attr_dicc = dataHandler.get_attrs()
+attr_dicc = xmlHandler_obj.get_attrs()
 MY_USERNAME = attr_dicc['userName']
 MY_USERPASS = attr_dicc['userPass']
 MY_SERVIP = attr_dicc['servIp']
@@ -87,25 +84,22 @@ PROX_IP = attr_dicc['proxIp']
 PROX_PORT = int(attr_dicc['proxPort'])
 LOG_FILE = attr_dicc['logPath']
 AUDIO_FILE = attr_dicc['audioPath']
-
 # Dirección SIP
 MY_ADDRESS = MY_USERNAME + '@dominio.com'
-
-# Comenzando el programa...
-log_debug('', '', '', 'Starting...')
-
 #--------------------------------- REGISTER -----------------------------------
 if method == 'REGISTER':
     # Enviamos solicitud y recibimos respuesta
-    request = method + ' sip:' + MY_ADDRESS + ':' + str(MY_SERVPORT) + ' ' + VERSION + '\r\n'\
-            + 'Expires: ' + OPTION + '\r\n\r\n'
+    request = method + ' sip:' + MY_ADDRESS + ':' + str(MY_SERVPORT) + ' ' \
+            + VERSION + '\r\n' + 'Expires: ' + OPTION + '\r\n\r\n'
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     send(my_socket, request, PROX_IP, PROX_PORT)
     response = receive(my_socket, PROX_IP, PROX_PORT)
     my_socket.close()
-
+    # Si el registro es para dar de baja finalizamos programa
+    if OPTION == '0':
+        log_debug('', '', '', 'Finishing.')
 #--------------------------------- INVITE -----------------------------------
-if method == 'INVITE':
+elif method == 'INVITE':
     # Envío de mensaje INVITE y recepción de respuesta (a través de Proxy)
     request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n' \
             + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' +  'o=' \
@@ -118,6 +112,7 @@ if method == 'INVITE':
     # Evaluación de respuesta al INVITE
     head = response[0:94]
     body = response[94:]
+    response_list = response.split()
     head1 = "SIP/1.0 100 Trying\r\n\r\n" + "SIP/1.0 180 Ringing\r\n\r\n"\
           + "SIP/1.0 200 OK\r\nContent-Type: application/sdp\r\n\r\n"
     head2 = "SIP/2.0 100 Trying\r\n\r\n" + "SIP/2.0 180 Ringing\r\n\r\n"\
@@ -136,19 +131,20 @@ if method == 'INVITE':
         send(my_socket, request, PROX_IP, PROX_PORT)
         my_socket.close()
         # ------------------------- Envío RTP ---------------------------------
-        toRun = "./mp32rtp -i " + uadest_IP + " -p " + uadest_mediaport + " < " + AUDIO_FILE
+        toRun = "./mp32rtp -i " + uadest_IP + " -p " + uadest_mediaport \
+              + " < " + AUDIO_FILE
         log_debug('send', uadest_IP, uadest_mediaport, AUDIO_FILE)
         print "Sending RTP audio to UA..."
         os.system(toRun)
         print "Sending RTP audio completed."
-
-if method == 'BYE':
+#----------------------------------- BYE --------------------------------------
+elif method == 'BYE':
     # Envío de mensaje BYE y recepción de respuesta (a través de Proxy)
     request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n\r\n'
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     send(my_socket, request, PROX_IP, PROX_PORT)
     response = receive(my_socket, PROX_IP, PROX_PORT)
     my_socket.close()
-
-# Finalizamos programa
-log_debug('', '', '', 'Finishing.')
+# ------------------------ Método no permitido --------------------------------
+else:
+    print "SIP method not allowed."
