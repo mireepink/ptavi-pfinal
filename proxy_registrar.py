@@ -46,8 +46,6 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                     self.method = self.request_list[0]
                     protocol = self.request_list[1].split(':')[0]
                     self.address = self.request_list[1].split(':')[1]
-                    user = self.address.split('@')[0]
-                    domain = self.address.split('@')[1]
                     client_version = self.request_list[2]
 
                 # Envío de "Bad Request"
@@ -211,7 +209,7 @@ class DataHandler(ContentHandler):
 
         if name == 'server':
             name = attrs.get('name', "")
-            ip = attrs.get('ip', "")
+            ip = attrs.get('ip', "127.0.0.1")
             puerto = attrs.get('puerto', "")
             self.attr_dicc['servName'] = name
             self.attr_dicc['servIp'] = ip
