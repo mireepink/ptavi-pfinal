@@ -15,6 +15,7 @@ import socket
 
 # Variables globales
 users = {}
+REG_FILE = ""
 LOG_FILE = ""
 
 #-------------------------------- Clases --------------------------------------
@@ -86,7 +87,8 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
                 users[self.address] = (self.clientIP, expires, time.time(),
                                        server_port)
                 self.register2file()
-                print "Added user " + self.address + ':' + str(server_port)
+                print "Added " + self.address + ':' + str(server_port) \
+                      + ". Expires: " + str(expires)
                 # Envío de "OK"
                 response = MY_VERSION + " 200 OK\r\n\r\n"
                 self.wfile.write(response)
@@ -99,8 +101,7 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
                         found = 1
                 # Usuario encontrado en registro
                 if found:
-                    print "Deleted user " + self.address + ':' \
-                          + users[self.address][3]
+                    print "Deleted " + self.address + "."
                     del users[self.address]
                     self.register2file()
                     # Envío de "OK"
@@ -159,7 +160,7 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
         """
         Método para imprimir los usuarios registrados en un fichero de texto
         """
-        users_file = open('registered.txt', 'w')
+        users_file = open(REG_FILE, 'w')
         users_file.write('User' + '\t\t\t\t' + 'IP' + '\t\t\t' + 'Port' + '\t'\
                          + 'Log Time' + '\t\t' + 'Expires' + '\n')
         for user in users:
@@ -186,8 +187,7 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
             if elapsed_time >= expires:
                 del users[address]
                 self.register2file()
-                print "Tiempo expirado para " + address,
-                print "--> Usuario eliminado."
+                print "Deleted " + address + " (time expired)."
 
 class XMLHandler(ContentHandler):
     """
