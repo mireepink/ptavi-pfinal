@@ -28,10 +28,10 @@ class Proxy(SocketServer.DatagramRequestHandler):
             line_list = line.split(' ')
             IP = self.client_address[0]
             if line_list[0] == 'Bad_Request':
-                print 'SIP/2.0 400 Bad Request' + '\r\n\r\n'
-                self.wfile.write('SIP/2.0 400 Bad Request' + '\r\n\r\n')
+                print 'PROXY: SIP/2.0 400 Bad Request' + '\r\n\r\n'
+                self.wfile.write('PROXY: SIP/2.0 400 Bad Request' + '\r\n\r\n')
             elif line_list[0] == 'REGISTER':
-                print line
+                print 'PROXY ' + line
                 direccion = line_list[1].split(':')[1]
                 expires = int(line_list[4])
                 if expires == '0':
@@ -46,7 +46,7 @@ class Proxy(SocketServer.DatagramRequestHandler):
                 valores = [IP, port, timenow, timexp]
                 diccionario[direccion] = valores
                 print "Enviando ", "SIP/2.0 200 OK" + '\r\n\r\n'
-                self.wfile.write("SIP/2.0 200 OK" + '\r\n\r\n')
+                self.wfile.write("PROXY: SIP/2.0 200 OK" + '\r\n\r\n')
                 self.register2file()
                 for direccion in diccionario.keys():
                     if timenow >= diccionario[direccion][3]:
@@ -54,6 +54,7 @@ class Proxy(SocketServer.DatagramRequestHandler):
                         print direccion + " ha sido borrado" + '\r\n'
                 self.register2file()
             elif line_list[0] == 'INVITE':
+                print 'PROXY ' + line
                 Destinatario = line_list[2]
                 self.Buscar_y_enviar()
                 if Continuar == True:
@@ -61,12 +62,12 @@ class Proxy(SocketServer.DatagramRequestHandler):
             elif line_list[0] == 'ACK':
                 Destinatario1 = line.split(':')[1]
                 Destinatario = Destinatario1.split(' ')[0]
-                print line
+                print 'PROXY ' + line
                 self.Buscar_y_enviar()
                 if Continuar == True:
                     continue
             elif line_list[0] == 'BYE':
-                print line
+                print 'PROXY ' + line
                 bye = line_list[1]
                 Destinatario = bye.split(':')[1]
                 self.Buscar_y_enviar()
@@ -111,7 +112,7 @@ class Proxy(SocketServer.DatagramRequestHandler):
                 my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 my_socket.connect((TO_IP, int(TO_PUERTO)))
-                my_socket.send(line)
+                my_socket.send(line + '(Vía PROXY)' + '\r\n')
                 myline = my_socket.recv(1024)
                 if line_list[0] == 'INVITE':
                     fich.write(str(time.time()) + ' Recibido ' + line + '\r\n')
@@ -123,9 +124,9 @@ class Proxy(SocketServer.DatagramRequestHandler):
                 elif line_list[0] == 'ACK':
                     fich.write(str(time.time()) + ' Recibido ACK sip: ' + Destinatario + '\r\n')
                 elif line_list[0] == 'BYE':
-                    print 'Eviando ' + myline
+                    print 'Enviando ' + myline
                     fich.write(str(time.time()) + ' Recibido BYE sip: ' + Destinatario + '\r\n')
-                    self.wfile.write(myline)
+                    self.wfile.write('PROXY: ' + myline)
                 elif not line_list[0] in Lista:
                     print myline
                     fich.write(str(time.time()) + " " + myline + '\r\n')
