@@ -27,6 +27,7 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
             Metod = lines.split(' ')[0]
             if not Metod in Metodos:
                 self.wfile.write('SIP/2.0 405 Method Not Allowed' + '\r\n\r\n')
+                print 'SIP/2.0 405 Method Not Allowed' + '\r\n\r\n'
             elif Metod == 'INVITE':
                 Destinatario = lines.split(' ')[2]
                 Puerto_RTP = lines.split(' ')[12]
@@ -44,8 +45,9 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
             elif Metod == 'BYE':
                 self.wfile.write('SIP/2.0 200 OK' + '\r\n\r\n')
                 print 'Terminando conversación...'
-            else:
+            elif len(lines) != 4:
                 self.wfile.write('SIP/2.0 400 Bad Request' + '\r\n\r\n')
+                print 'SIP/2.0 400 Bad Request' + '\r\n\r\n'
 
 if __name__ == "__main__":
     
