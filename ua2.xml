@@ -1,8 +1,8 @@
 <config>
 	<account username="Raquel@ekiga.es" passwd=""/>
-	<uaserver ip="127.0.0.3" puerto="12348"/>
+	<uaserver ip="127.0.0.1" puerto="12348"/>
 	<rtpaudio puerto="12349"/>
-	<regproxy ip="127.0.0.4" puerto="12355"/>
-	<log path=""/>
-	<audio path=""/>
+	<regproxy ip="127.0.0.5" puerto="12365"/>
+	<log path="./log_2.txt"/>
+	<audio path="./cancion.mp3"/>
 </config>
