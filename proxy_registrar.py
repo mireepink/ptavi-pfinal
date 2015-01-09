@@ -123,13 +123,22 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
         # --------------------- REENVÍO DE INVITE, ACK y BYE ------------------
         elif self.method == 'INVITE' or self.method == 'ACK' \
              or self.method == 'BYE':
+            uaorig_registered = 0
+            uadest_registered = 0
+            # Búsqueda de UA origen en registro (para método INVITE)
+            if self.method == 'INVITE':
+                uaorig_address = self.request_list[6].split('=')[1]
+                for user1 in users:
+                    if uaorig_address == user1:
+                        uaorig_registered = 1
+            else:
+                uaorig_registered = 1
             # Búsqueda de UA destino en registro
-            found = 0
-            for user in users:
-                if self.address == user:
-                    found = 1
-            # UA destino registrado
-            if found:
+            for user2 in users:
+                if self.address == user2:
+                    uadest_registered = 1
+            # User Agent/s registrado/s
+            if uaorig_registered and uadest_registered:
                 ua_destIP = users[self.address][0]
                 ua_destPort = int(users[self.address][3])
                 # Reenviamos solicitud al UA destino y recibimos su respuesta
@@ -143,7 +152,7 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
                         response = MY_VERSION + " 404 User Not Found\r\n\r\n"
                     self.wfile.write(response)
                     log_debug('send', self.clientIP, self.clientPort, response)
-            # UA destino no registrado. Envío de "Not Found"
+            # User Agent/s no registrado/s. Envío de "Not Found"
             else:
                 response = MY_VERSION + " 404 User Not Found\r\n\r\n"
                 self.wfile.write(response)
