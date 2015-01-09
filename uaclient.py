@@ -32,6 +32,7 @@ def log_debug(oper, ip, port, msg):
     logFile.write(formatTime + ' ' + info + msgLine + '\n')
     logFile.close()
 
+
 def send(my_socket, request, servIP, servPort):
     """
     Método para enviar solicitur a un servidor
@@ -43,6 +44,7 @@ def send(my_socket, request, servIP, servPort):
     my_socket.send(request)
     log_debug('send', servIP, servPort, request)
 
+
 def receive(my_socket, servIP, servPort):
     """
     Método para recibir respuesta de un servidor
@@ -51,7 +53,7 @@ def receive(my_socket, servIP, servPort):
     try:
         response = my_socket.recv(1024)
     except socket.error:
-        error_msg = "Error: No server listening at " + servIP  + " port " \
+        error_msg = "Error: No server listening at " + servIP + " port " \
                   + str(servPort)
         log_debug('', '', '', error_msg)
         raise SystemExit
@@ -68,7 +70,7 @@ else:
     CONFIG = sys.argv[1]
     method = sys.argv[2].upper()
     OPTION = sys.argv[3]
-# Parseo del fichero XML    
+# Parseo del fichero XML
 parser = make_parser()
 xmlHandler_obj = uaserver.XMLHandler()
 parser.setContentHandler(xmlHandler_obj)
@@ -79,7 +81,7 @@ MY_USERNAME = attr_dicc['userName']
 MY_USERPASS = attr_dicc['userPass']
 MY_SERVIP = attr_dicc['servIp']
 MY_SERVPORT = int(attr_dicc['servPort'])
-RTP_PORT = int(attr_dicc['rtpPort'])
+MY_RTPPORT = int(attr_dicc['rtpPort'])
 PROX_IP = attr_dicc['proxIp']
 PROX_PORT = int(attr_dicc['proxPort'])
 LOG_FILE = attr_dicc['logPath']
@@ -102,9 +104,9 @@ if method == 'REGISTER':
 elif method == 'INVITE':
     # Envío de mensaje INVITE y recepción de respuesta (a través de Proxy)
     request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n' \
-            + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' +  'o=' \
+            + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n' + 'o=' \
             + MY_ADDRESS + ' ' + MY_SERVIP + '\r\n' + 's=sesion_sip\r\n' \
-            + 't=0\r\n' + 'm=audio ' + str(RTP_PORT) + ' RTP\r\n'
+            + 't=0\r\n' + 'm=audio ' + str(MY_RTPPORT) + ' RTP\r\n'
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     send(my_socket, request, PROX_IP, PROX_PORT)
     response = receive(my_socket, PROX_IP, PROX_PORT)
@@ -123,18 +125,15 @@ elif method == 'INVITE':
         orig_address = sdp_list[1].split('=')[1]
         uadest_IP = sdp_list[2]
         media_type = sdp_list[5].split('=')[1]
-        uadest_mediaport = sdp_list[6]
+        uadest_mediaport = int(sdp_list[6])
         # Envío de ACK (a través de Proxy)
         method = 'ACK'
         request = method + ' sip:' + OPTION + ' ' + VERSION + '\r\n\r\n'
         my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         send(my_socket, request, PROX_IP, PROX_PORT)
         my_socket.close()
-        # Escucha con (c)vlc en background del audio enviado (OPCIONAL)
-        toRun = "cvlc rtp://@" + uadest_IP + ":" + uadest_mediaport + "&"
-        os.system(toRun)
         # ------------------------- Envío RTP ---------------------------------
-        toRun = "./mp32rtp -i " + uadest_IP + " -p " + uadest_mediaport \
+        toRun = "./mp32rtp -i " + uadest_IP + " -p " + str(uadest_mediaport) \
               + " < " + AUDIO_FILE
         log_debug('send', uadest_IP, uadest_mediaport, AUDIO_FILE)
         print "Sending RTP audio to UA..."
