@@ -22,5 +22,5 @@
     <rtpaudio puerto="6200" />
     <regproxy ip="127.0.0.1" puerto="5300" />
     <log path="ua2log.txt" />
-    <audio path="audio_user2_to_user1.mp3" />
+    <audio path="cancion.mp3" />
 </config>
