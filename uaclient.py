@@ -16,6 +16,7 @@ try:
     METOD = sys.argv[2]
     OPTION = sys.argv[3]
     data = []
+    tt = str(time.time())
     #Abrimos el fichero xml y leemos de él la información
     fich = open(CONFIG, 'r')
     line = fich.readlines()
@@ -69,9 +70,9 @@ try:
         try:
             data = my_socket.recv(1024)
         except socket.error:
-            fich.write(str(time.time()) + " Error:No server listening at "
+            fich.write(tt + " Error:No server listening at "
                        + IP_PROXY + " port " + PUERTO_PROXY)
-            sys.exit(str(time.time()) + " Error:No server listening at "
+            sys.exit(tt + " Error:No server listening at "
                      + IP_PROXY + " port " + PUERTO_PROXY)
 
     if len(sys.argv) != 4:
@@ -96,7 +97,7 @@ if METOD == 'REGISTER':
     fich = open(PATH_LOG, 'a')
     Sent_Register = ": REGISTER sip:" + USUARIO + ":" + PUERTO
     Sent_Register += " SIP/2.0 Expires: " + OPTION + '\r\n'
-    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":"
+    fich.write(tt + " Sent to " + IP_PROXY + ":"
                + PUERTO_PROXY + Sent_Register)
 
     LINEA1 = "REGISTER " + "sip:" + USUARIO
@@ -108,18 +109,18 @@ if METOD == 'REGISTER':
     rcv_register = data.split('\r\n\r\n')[0:-1]
     if rcv_register == ['SIP/2.0 200 OK']:
         print "Recibido --", data
-        fich.write(str(time.time()) + " Received from " + IP_PROXY
+        fich.write(tt + " Received from " + IP_PROXY
                    + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
     else:
         print data
 
     if OPTION == '0':
-        fich.write(str(time.time()) + " Terminando socket..." + USUARIO\r\n')
+        fich.write(tt + " Terminando socket..." + USUARIO + '\r\n')
         fich.close()
         print "Terminando socket..."
         my_socket.close()
     else:
-        fich.write(str(time.time()) + " Starting..." + '\r\n')
+        fich.write(tt + " Starting..." + '\r\n')
 
 if METOD == 'INVITE':
     fich = open(PATH_LOG, 'a')
@@ -128,7 +129,7 @@ if METOD == 'INVITE':
     LINEA += "o=" + USUARIO + " " + IP + " \r\n"
     LINEA += "s=vampireando" + "\r\n" + "t=0" + "\r\n"
     LINEA += "m=audio " + PUERTO_AUDIO + " RTP" + "\r\n"
-    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":"
+    fich.write(tt + " Sent to " + IP_PROXY + ":"
                + PUERTO_PROXY + ': ' + LINEA + '\r\n')
     print LINEA
     dataf(my_socket)
@@ -141,15 +142,15 @@ if METOD == 'INVITE':
                 rcv_invite1 = rcv_invite[0:3]
                 rcv_invite2 = str(rcv_invite1)
                 print 'Recibido PROXY: ' + rcv_invite2
-                fich.write(str(time.time()) + " Received from " + IP_PROXY
+                fich.write(tt + " Received from " + IP_PROXY
                            + ":" + PUERTO_PROXY + ': ' + rcv_invite2 + '\r\n')
                 METOD = 'ACK'
                 NEWLINE = METOD + ' sip:' + OPTION + ' SIP/2.0\r\n'
                 print '\r\n\r\n' + "Enviando: " + NEWLINE
-                fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":"
+                fich.write(tt + " Sent to " + IP_PROXY + ":"
                            + PUERTO_PROXY + ': ' + NEWLINE)
                 my_socket.send(NEWLINE)
-                fich.write(str(time.time()) + ' Conexion audio RTP ' + '\r\n')
+                fich.write(tt + ' Conexion audio RTP ' + '\r\n')
                 t = MiThread(IP, Puerto_RTP)
                 t.start()
                 t.join()
@@ -164,8 +165,8 @@ if METOD == 'INVITE':
             print data
 
     except IndexError:
-        fich.write(str(time.time()) + " Error:No uaserver listening")
-        sys.exit(str(time.time()) + " Error:No uaserver listening")
+        fich.write(tt + " Error:No uaserver listening")
+        sys.exit(tt + " Error:No uaserver listening")
 
 if METOD == 'BYE':
     fich = open(PATH_LOG, 'a')
@@ -173,13 +174,13 @@ if METOD == 'BYE':
     print Sent_BYE
     Mi_Direccion = 'Mi direccion es ' + USUARIO
     LINEA = Sent_BYE + Mi_Direccion
-    fich.write(str(time.time()) + " Sent to " + IP_PROXY
+    fich.write(tt + " Sent to " + IP_PROXY
                + ":" + PUERTO_PROXY + ': ' + Sent_BYE)
     dataf(my_socket)
 
     rcv_bye = data.split('\r\n\r\n')[0:-1]
     if rcv_bye == ['SIP/2.0 200 OK']:
-        fich.write(str(time.time()) + " Received from " + IP_PROXY
+        fich.write(tt + " Received from " + IP_PROXY
                    + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
         fich.close()
         print data
