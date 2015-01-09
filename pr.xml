@@ -1,5 +1,5 @@
 <config>
 	<server name="MiServidorVampirico" ip="127.0.0.1" puerto="2272" />
-	<database path="database.txt" passwdpath="" />
+	<database path="database.txt" passwdpath="passwords.txt" />
 	<log path="log_prox.txt" />
 </config>
