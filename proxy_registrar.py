@@ -39,10 +39,10 @@ class Proxy(SocketServer.DatagramRequestHandler):
                     try:
                         expires = int(line_list[3])
                         if expires == '0':
-                            fich.write(tt + " Borrando a " + direccion + '\r\n')
+                            fich.write(tt + " Borrando: " + direccion + '\r\n')
                         else:
                             fich.write(tt + " Starting..." + '\r\n')
-                            fich.write(tt + " Registrado " + direccion + '\r\n')
+                            fich.write(tt + " Register " + direccion + '\r\n')
                     except:
                         entero = 'Expires tiene que ser un numero entero\r\n'
                         print entero
