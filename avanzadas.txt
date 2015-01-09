@@ -1,0 +1,5 @@
+Restablecer los usuarios conectados
+Integracion de cvlc
+Integracion cvlc con hilos
+Consistencia frente a valores erróneos
+Mecanismo de registro seguro
