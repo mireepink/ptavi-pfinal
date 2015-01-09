@@ -12,7 +12,7 @@
     <!ATTLIST log path CDATA #REQUIRED>
 ]>
 <config>
-    <server name="ProxyServer" puerto="5200" />
+    <server name="ProxyServer" puerto="5300" />
     <database path="registered.txt" />
     <log path="prlog.txt" />
 </config>
