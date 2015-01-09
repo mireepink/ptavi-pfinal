@@ -17,19 +17,21 @@ entrada = sys.argv
 
 CONFIG = entrada[1]
 
+
 def log(hora, accion, evento):
     fichero = ListaDatos[4][1]['path']
     fich = open(fichero, 'a')
-    fich.write(str(hora))
+    fich.write(time.strftime('%Y%m%d%H%M%S', time.gmtime(float(hora))))
     fich.write(accion)
     fich.write(evento)
     fich.close()
+
 
 class SIPHandler(SocketServer.DatagramRequestHandler):
     """
     SIP server class
     """
-    Receptor = {'ip': '','puerto': 0}
+    Receptor = {'ip': '', 'puerto': 0}
 
     def handle(self):
         lista = ['INVITE', 'ACK', 'BYE']
@@ -52,50 +54,57 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 accion = ' Received from ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = line.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 sentencia = 'SIP/2.0 100 Trying\r\n\r\n'
                 sentencia += 'SIP/2.0 180 Ringing\r\n\r\n'
                 sentencia += 'SIP/2.0 200 OK\r\n'
                 sentencia += 'Content-Type: application/sdp\r\n\r\n'
                 sentencia += 'v=0' + '\r\n'
-                sentencia += 'o=' + ListaDatos[0][1]['username'] + ' ' + ListaDatos[1][1]['ip'] + '\r\n'
-                sentencia += 's=misesion' + '\r\n'
+                IP = ListaDatos[1][1]['ip']
+                sentencia += 'o=' + ListaDatos[0][1]['username'] + ' ' + IP
+                sentencia += '\r\n' + 's=misesion' + '\r\n'
                 sentencia += 't=0' + '\r\n'
-                sentencia += 'm=audio ' + ListaDatos[2][1]['puerto'] + ' RTP\r\n\r\n'
+                PUERTO = ListaDatos[2][1]['puerto']
+                sentencia += 'm=audio ' + PUERTO + ' RTP\r\n\r\n'
                 print sentencia
                 hora = time.time()
-                accion = ' Send to ' + str(IP_PR) + ':' + str(PUERTO_PR)
+                accion = ' Sent to ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = sentencia.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 self.wfile.write(sentencia)
             elif recibido[0] == 'ACK':
                 hora = time.time()
                 accion = ' Received from ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = line.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 fichero_audio = ListaDatos[5][1]['path']
-                aEjecutar = './mp32rtp -i ' + str(self.Receptor['ip']) + ' -p ' + str(self.Receptor['puerto'])
+                IP = self.Receptor['ip']
+                PUERTO = self.Receptor['puerto']
+                aEjecutar = './mp32rtp -i ' + str(IP) + ' -p ' + str(PUERTO)
                 aEjecutar += ' < ' + fichero_audio
                 print aEjecutar
                 os.system('chmod 755 mp32rtp')
                 os.system(aEjecutar)
-                #comando = 'cvlc rtp://@' + str(self.Receptor_IP) + ':' + str(self.Receptor_Puerto)
-                #os.system(comando)
+                hora = time.time()
+                accion = ' Sent to ' + str(IP) + ':' + str(PUERTO)
+                evento = 'Envio RTP'
+                evento = ': ' + evento + '\r\n'
+                log(hora, accion, evento)
                 print "Finalizado envío"
             elif recibido[0] == 'BYE':
                 hora = time.time()
                 accion = ' Received from ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = line.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 sentencia = 'SIP/2.0 200 OK\r\n\r\n'
                 hora = time.time()
-                accion = ' Send to ' + str(IP_PR) + ':' + str(PUERTO_PR)
+                accion = ' Sent to ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = sentencia.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 print sentencia
                 self.wfile.write(sentencia)
             elif recibido[0] not in lista:
@@ -103,13 +112,13 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 accion = ' Received from ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = line.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 sentencia = 'SIP/2.0 405 Method Not Allowed\r\n\r\n'
                 hora = time.time()
-                accion = ' Send to ' + str(IP_PR) + ':' + str(PUERTO_PR)
+                accion = ' Sent to ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = sentencia.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 print sentencia
                 self.wfile.write(sentencia)
             else:
@@ -117,13 +126,13 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 accion = ' Received from ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = line.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                log(hora,accion,evento)
+                log(hora, accion, evento)
                 sentencia = 'SIP/2.0 400 Bad Request\r\n\r\n'
                 hora = time.time()
-                accion = ' Send to ' + str(IP_PR) + ':' + str(PUERTO_PR)
+                accion = ' Sent to ' + str(IP_PR) + ':' + str(PUERTO_PR)
                 evento = sentencia.replace('\r\n', ' ')
                 evento = ': ' + evento + '\r\n'
-                uaclient.log(hora,accion,evento)
+                uaclient.log(hora, accion, evento)
                 print sentencia
                 self.wfile.write(sentencia)
 
@@ -139,6 +148,13 @@ if __name__ == "__main__":
     ListaDatos = Datos.get_tags()
     IP_PR = ListaDatos[3][1]['ip']
     PUERTO_PR = int(ListaDatos[3][1]['puerto'])
-    serv = SocketServer.UDPServer((ListaDatos[1][1]['ip'], int(ListaDatos[1][1]['puerto'])), SIPHandler)
+    IP = ListaDatos[1][1]['ip']
+    if IP == "" or IP == " ":
+        IP = '127.0.0.1'
+    PUERTO = ListaDatos[1][1]['puerto']
+    hora = time.time()
+    accion = ' Starting...\r\n'
+    log(hora, accion, '')
+    serv = SocketServer.UDPServer((IP, int(PUERTO)), SIPHandler)
     print "Listening..."
     serv.serve_forever()
