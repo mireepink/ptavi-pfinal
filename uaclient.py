@@ -61,7 +61,7 @@ try:
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((IP_PROXY, int(PUERTO_PROXY)))
 
-    fich = open(PATH_LOG, 'w')
+    fich = open(PATH_LOG, 'a')
 
     def dataf(my_socket):
         global data
