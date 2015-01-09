@@ -11,11 +11,12 @@ import time
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 
-def log(fichero,hora,estructura,evento):
+def log(hora, accion, evento):
+    fichero = ListaDatos[2][1]['path']
     fich = open(fichero, 'a')
-    estructura = time.gmtime(hora)
-    fich.write(time.strftime('%Y-%m-%d %H:%M:%S', estructura) + '\t')
-    fich.write(evento + '\r\n')
+    fich.write(str(hora))
+    fich.write(accion)
+    fich.write(evento)
     fich.close()
 
 class ExtraerDatos(ContentHandler):
@@ -50,7 +51,8 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
         """
         Metodo que rellena el fichero
         """
-        fich = open('registered.txt', 'w')
+        fichero = ListaDatos[1][1]['path']
+        fich = open(fichero, 'w')
         fich.write("User" + "\t" + "IP" + "\t" + "Puerto" + "\t" + "Expires" + "\r\n")
         for direccion in self.diccionario.keys():
             ip = self.diccionario[direccion][0]
@@ -70,7 +72,6 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
             if not line:
                 break
             entrada = line.split(' ')
-            print 'Recibido -- ', line
             if entrada[0] == 'REGISTER':
                 hora = float(time.time()) + float(entrada[3])
                 dir_puerto = entrada[1].split(':')
@@ -79,33 +80,61 @@ class SIPRegisterHandler(SocketServer.DatagramRequestHandler):
                 self.lista = [self.client_address[0], hora, puerto]
                 self.diccionario[dirsip] = self.lista
                 hora_actual = float(time.time())
-                log(fichero,hora,estructura,evento):
+                hora = time.time()
+                accion = ' Received from ' + str(self.lista[0]) + ':' + str(self.lista[2])
+                evento = line.replace('\r\n', ' ')
+                evento = ': ' + evento + '\r\n'
+                log(hora,accion,evento)
                 for direccion in self.diccionario.keys():
                     if self.diccionario[direccion][1] < hora_actual:
                         del self.diccionario[direccion]
-                print "Enviando..." + "SIP/2.0 200 OK\r\n\r\n"
-                log(fichero,hora,estructura,evento):
+                line = "SIP/2.0 200 OK\r\n\r\n"
+                hora = time.time()
+                accion = ' Send to ' + str(self.lista[0]) + ':' + str(self.lista[2])
+                evento = line.replace('\r\n', ' ')
+                evento = ': ' + evento + '\r\n'
+                log(hora,accion,evento)
                 self.wfile.write("SIP/2.0 200 OK\r\n\r\n")
                 self.register2file()
-                print self.diccionario
             elif entrada[0] in metodos:
                 nombre_peticion = entrada[1].split(':')
                 nombre_peticion = nombre_peticion[1]
                 if self.diccionario.has_key(nombre_peticion) == True:
-                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     IP_UAS = self.diccionario[nombre_peticion][0]
                     PUERTO_UAS = int(self.diccionario[nombre_peticion][2])
+                    hora = time.time()
+                    accion = ' Received from ' + str(IP_UAS) + ':' + str(PUERTO_UAS)
+                    evento = line.replace('\r\n', ' ')
+                    evento = ': ' + evento + '\r\n'
+                    log(hora,accion,evento)
+                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     my_socket.connect((IP_UAS, PUERTO_UAS))    
                     my_socket.send(line)
-                    log(fichero,hora,estructura,evento):
+                    hora = time.time()
+                    accion = ' Send to ' + str(IP_UAS) + ':' + str(PUERTO_UAS)
+                    evento = line.replace('\r\n', ' ')
+                    evento = ': ' + evento + '\r\n'
+                    log(hora,accion,evento)
                     data = my_socket.recv(1024)
-                    log(fichero,hora,estructura,evento):
-                    print 'Recibido -- ', data
+                    hora = time.time()
+                    accion = ' Received from ' + str(IP_UAS) + ':' + str(PUERTO_UAS)
+                    evento = line.replace('\r\n', ' ')
+                    evento = ': ' + evento + '\r\n'
+                    log(hora,accion,evento)
                     self.wfile.write(data)
                 else:
-                    print "SIP/2.0 404 User Not Found\r\n\r\n"
-                    log(fichero,hora,estructura,evento):
+                    hora = time.time()
+                    accion = ' Received from ' + str(IP_PR) + ':' + str(PUERTO_PR)
+                    evento = line.replace('\r\n', ' ')
+                    evento = ': ' + evento + '\r\n'
+                    log(hora,accion,evento)
+                    line = "SIP/2.0 404 User Not Found\r\n\r\n"
+                    hora = time.time()
+                    accion = ' Error: '
+                    evento = line.replace('\r\n', ' ')
+                    evento = ': ' + evento + '\r\n'
+                    log(hora,accion,evento)
                     self.wfile.write("SIP/2.0 404 User Not Found\r\n\r\n")
 
 if __name__ == "__main__":
@@ -122,7 +151,7 @@ if __name__ == "__main__":
     parser.setContentHandler(Datos)
     parser.parse(open(CONFIG))
     ListaDatos = Datos.get_tags()
-    log(fichero,hora,estructura,evento):
+    #log(fichero,hora,estructura,evento):
     serv = SocketServer.UDPServer((ListaDatos[0][1]['ip'], int(ListaDatos[0][1]['puerto'])),  SIPRegisterHandler)
 
     print "Server MiServidorBigBang listening at port " + ListaDatos[0][1]['puerto'] + "..."
