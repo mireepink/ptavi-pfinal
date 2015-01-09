@@ -158,3 +158,6 @@ if __name__ == "__main__":
     serv = SocketServer.UDPServer((IP, int(PUERTO)), SIPHandler)
     print "Listening..."
     serv.serve_forever()
+    hora = time.time()
+    accion = ' Finishing...\r\n'
+    log(hora, accion, '')
