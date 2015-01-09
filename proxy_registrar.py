@@ -184,3 +184,6 @@ if __name__ == "__main__":
 
     print "Server MiServidorBigBang listening at port " + PUERTO_PR + "..."
     serv.serve_forever()
+    hora = time.time()
+    accion = ' Finishing...\r\n'
+    log(hora, accion, '')
