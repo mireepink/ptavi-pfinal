@@ -69,8 +69,6 @@ if __name__ == "__main__":
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         my_socket.connect((IP_PR, PUERTO_PR))
 
-        LINE = '...'
-
         if METODO == 'REGISTER':
             #REGISTER sip:leonard@bigbang.org:1234 SIP/2.0
             LINE = METODO + ' sip:' + ListaDatos[0][1]['username']
@@ -87,7 +85,7 @@ if __name__ == "__main__":
             #INVITE sip:penny@girlnextdoor.com SIP/2.0
             LINE = METODO + ' sip:' + OPTION + ' SIP/2.0' + '\r\n'
             #Content-Type: application/sdp
-            LINE += 'Content-Type: application/sdp' + '\r\n'
+            LINE += 'Content-Type: application/sdp\r\n\r\n'
             #v=0
             LINE += 'v=0' + '\r\n'
             #o=leonard@bigbang.org 127.0.0.1
@@ -113,6 +111,14 @@ if __name__ == "__main__":
             evento = ': ' + evento + '\r\n'
             log(hora,accion,evento)
 
+        else:
+            LINE = METODO + ' sip:' + OPTION + ' SIP/2.0'
+            hora = time.time()
+            accion = ' Send to ' + str(IP_PR) + ':' + str(PUERTO_PR)
+            evento = LINE.replace('\r\n', ' ')
+            evento = ': ' + evento + '\r\n'
+            log(hora,accion,evento)
+
         print "Enviando: " + LINE
         my_socket.send(LINE + '\r\n')
 
@@ -120,13 +126,13 @@ if __name__ == "__main__":
         print 'Recibido -- ', data
         sentencia = data.split('\r\n')
 
-        if data == 'SIP/2.0 200 OK\r\n\r\n'
+        if data == 'SIP/2.0 200 OK\r\n\r\n':
             hora = time.time()
             accion = ' Received from ' + str(IP_PR) + ':' + str(PUERTO_PR)
             evento = data.replace('\r\n', ' ')
             evento = ': ' + evento + '\r\n'
             log(hora,accion,evento)
-        elif len(sentencia) == 13:
+        elif len(sentencia) == 14:
             Receptor_IP = sentencia[7]
             Receptor_IP = Receptor_IP.split(' ')
             Receptor_IP = Receptor_IP[1]
@@ -139,7 +145,7 @@ if __name__ == "__main__":
             evento = ': ' + evento + '\r\n'
             log(hora,accion,evento)
             fichero_audio = ListaDatos[5][1]['path']
-            LINE = 'ACK' + ' sip:' + OPTION
+            LINE = 'ACK sip:' + OPTION
             LINE += ' SIP/2.0' + '\r\n'
             print 'Enviando: ' + LINE
             my_socket.send(LINE + '\r\n')
@@ -175,7 +181,6 @@ if __name__ == "__main__":
     except socket.error:
         print 'Error: No server listening'
         hora = time.time()
-        accion = ' Error: No server listening at ' + IP_PR + ' port ' + PUERTO_PR
-        evento = data.replace('\r\n', ' ')
-        evento = evento + '\r\n'
+        accion = ' Error: No server listening at '
+        evento = str(IP_PR) + ' port ' + str(PUERTO_PR) + '\r\n'
         log(hora,accion,evento)
