@@ -299,6 +299,33 @@ if __name__ == "__main__":
     LOG_FILE = attr_dicc['logPath']
     # Comenzando el programa...
     log_debug('', '', '', 'Starting...')
+    # Restauración usuarios de fichero registro (caída de servidor)
+    try:
+        restored_regfile = open(REG_FILE, 'r')
+        exception = False
+    except:
+        exception = True
+    if not exception:
+        print "Recovering data..."
+        reg_empty = True
+        lines_list = restored_regfile.readlines()
+        title = 'User' + '\t\t\t\t' + 'IP' + '\t\t\t' + 'Port' + '\t'\
+              + 'Log Time' + '\t\t' + 'Expires' + '\n'
+        for line in lines_list: 
+            if line != title:
+                reg_empty = False
+                userdata_list = line.split()
+                ua_addrs = userdata_list[0]
+                ua_ip = userdata_list[1]
+                ua_port = int(userdata_list[2])
+                ua_time = float(userdata_list[3])
+                ua_expires = float(userdata_list[4])
+                users[ua_addrs] = (ua_ip, ua_expires, ua_time, ua_port)
+        restored_regfile.close()
+        if reg_empty:
+            print "nothing to recover"
+        else:
+            print users
     # Creamos servidor SIP y escuchamos
     serv = SocketServer.UDPServer((MY_IP, MY_PORT), SIPProxyRegisterHandler)
     print "Server " + SERVERNAME + " listening at " + MY_IP + ':' \
