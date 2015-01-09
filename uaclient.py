@@ -7,6 +7,7 @@ import os
 import sys
 import socket
 import time
+from uaserver import MiThread
 
 
 try:
@@ -50,14 +51,17 @@ try:
     line_audio = line[6].split(">")
     audio = line_audio[0].split("=")[1]
     PATH_AUDIO = audio.split(" ")[0][1:-1]
+    #Contraseña
+    passw = line_account[0].split("=")[2]
+    PASSWORD = passw.split(" ")[0][1:-1]
 
     #Creamos el socket, lo configuramos y lo atamos a un servidor/puerto
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((IP_PROXY, int(PUERTO_PROXY)))
 
-    fich = open(PATH_LOG, 'r+')
-    
+    fich = open(PATH_LOG, 'w')
+
     def dataf(my_socket):
         global data
         my_socket.send(LINEA)
@@ -65,10 +69,12 @@ try:
         try:
             data = my_socket.recv(1024)
         except socket.error:
-            fich.write(str(time.time()) + " Error:No server listening at " + IP_PROXY + " port " + PUERTO_PROXY)
-            sys.exit(str(time.time()) + " Error:No server listening at " + IP_PROXY + " port " + PUERTO_PROXY)
+            fich.write(str(time.time()) + " Error:No server listening at "
+                       + IP_PROXY + " port " + PUERTO_PROXY)
+            sys.exit(str(time.time()) + " Error:No server listening at "
+                     + IP_PROXY + " port " + PUERTO_PROXY)
 
-    if len(sys.argv) != 4: 
+    if len(sys.argv) != 4:
         LINEA = 'Bad_Request'
         dataf(my_socket)
         print data
@@ -77,69 +83,86 @@ except IndexError:
     print 'SIP/2.0 400 Bad Request' + '\r\n'
     sys.exit("Usage: python uaclient.py config method option")
 
-
 #Metodos posibles a enviar
 Lista = ["REGISTER", "INVITE", "BYE"]
 if METOD not in Lista:
     print "Usage: python uaclient.py config method option" + '\r\n'
-    LINEA = str(METOD) + ' '  + str(OPTION)
+    LINEA = str(METOD) + ' ' + str(OPTION)
     dataf(my_socket)
     print data
     print "Method = " + str(Lista)
 
 if METOD == 'REGISTER':
     fich = open(PATH_LOG, 'a')
-    Sent_Register = ": REGISTER sip:" + USUARIO + ":" + PUERTO + " SIP/2.0 Expires: " + OPTION + '\r\n'
-    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":" + PUERTO_PROXY + Sent_Register)
+    Sent_Register = ": REGISTER sip:" + USUARIO + ":" + PUERTO
+    Sent_Register += " SIP/2.0 Expires: " + OPTION + '\r\n'
+    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":"
+               + PUERTO_PROXY + Sent_Register)
 
-    LINEA = 'REGISTER ' + "sip:" + USUARIO 
-    LINEA += ":" + PUERTO + " SIP/2.0 \r\n" + "Expires: " + OPTION + '\r\n'
-    print LINEA
+    LINEA1 = "REGISTER " + "sip:" + USUARIO
+    LINEA1 += ":" + PUERTO + " SIP/2.0\r\n" + "Expires: " + OPTION + "\r\n\r\n"
+    Contrasena = ' Password: ' + PASSWORD + ' \r\n'
+    LINEA = LINEA1 + Contrasena
+    print LINEA1
     dataf(my_socket)
     rcv_register = data.split('\r\n\r\n')[0:-1]
-    if rcv_register == ['PROXY: SIP/2.0 200 OK']:
+    if rcv_register == ['SIP/2.0 200 OK']:
         print "Recibido --", data
-        fich.write(str(time.time()) + " Received from " + IP_PROXY + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
+        fich.write(str(time.time()) + " Received from " + IP_PROXY
+                   + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
+    else:
+        print data
 
     if OPTION == '0':
-        fich.write(str(time.time()) + " Finishing..." + '\r\n')
+        fich.write(str(time.time()) + " Terminando socket..." + USUARIO\r\n')
         fich.close()
         print "Terminando socket..."
-        my_socket.close() 
+        my_socket.close()
     else:
         fich.write(str(time.time()) + " Starting..." + '\r\n')
 
 if METOD == 'INVITE':
     fich = open(PATH_LOG, 'a')
-    LINEA = 'INVITE ' + "sip: " + OPTION + " SIP/2.0 \r\n"
-    LINEA += "Content-Type: application/sdp \r\n\r\n" + "v=0 \r\n"        
-    LINEA +="o=" + USUARIO + " " + IP + ' \r\n'
-    LINEA += "s=vampireando"
-    LINEA +=' \r\n' + "t=0" + ' \r\n' + "m=audio " + PUERTO_AUDIO + ' RTP' + '\r\n'
-    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + LINEA + '\r\n')
+    LINEA = "INVITE " + "sip:" + OPTION + " SIP/2.0\r\n"
+    LINEA += "Content-Type: application/sdp\r\n\r\n" + "v=0\r\n"
+    LINEA += "o=" + USUARIO + " " + IP + " \r\n"
+    LINEA += "s=vampireando" + "\r\n" + "t=0" + "\r\n"
+    LINEA += "m=audio " + PUERTO_AUDIO + " RTP" + "\r\n"
+    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":"
+               + PUERTO_PROXY + ': ' + LINEA + '\r\n')
     print LINEA
     dataf(my_socket)
 
     try:
-        if data != "SIP/2.0 404 User Not Found":
-            Puerto_RTP = data.split(' ')[14]
-            rcv_invite = data.split('\r\n\r\n')[0:-1]
-            rcv_invite1 = rcv_invite[0:3]
-            rcv_invite2 = str(rcv_invite1)
-            print 'Recibido PROXY: ' + rcv_invite2
-            fich.write(str(time.time()) + " Received from " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + rcv_invite2 + '\r\n')
-            METOD = 'ACK'
-            NEWLINE = METOD + ' sip:' + OPTION + ' SIP/2.0\r\n'
-            print '\r\n\r\n' + "Enviando: " + NEWLINE
-            fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + NEWLINE)
-            my_socket.send(NEWLINE)
-            fich.write(str(time.time()) + ' Conexion audio RTP ' + '\r\n')
-            aAejecutar = './mp32rtp -i ' + IP + ' -p ' + str(Puerto_RTP) + ' < ' + PATH_AUDIO
-            print 'Vamos a ejecutar', aAejecutar
-            os.system(aAejecutar)
-            print 'Ejecutado', '\r\n\r\n'
+        if data != 'Accion no posible sin registrar\r\n':
+            if data != "SIP/2.0 404 User Not Found":
+                Puerto_RTP = data.split(' ')[14]
+                rcv_invite = data.split('\r\n\r\n')[0:-1]
+                rcv_invite1 = rcv_invite[0:3]
+                rcv_invite2 = str(rcv_invite1)
+                print 'Recibido PROXY: ' + rcv_invite2
+                fich.write(str(time.time()) + " Received from " + IP_PROXY
+                           + ":" + PUERTO_PROXY + ': ' + rcv_invite2 + '\r\n')
+                METOD = 'ACK'
+                NEWLINE = METOD + ' sip:' + OPTION + ' SIP/2.0\r\n'
+                print '\r\n\r\n' + "Enviando: " + NEWLINE
+                fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":"
+                           + PUERTO_PROXY + ': ' + NEWLINE)
+                my_socket.send(NEWLINE)
+                fich.write(str(time.time()) + ' Conexion audio RTP ' + '\r\n')
+                t = MiThread(IP, Puerto_RTP)
+                t.start()
+                t.join()
+                aAejecutar = './mp32rtp -i ' + IP + ' -p '
+                aAejecutar += str(Puerto_RTP) + ' < ' + PATH_AUDIO
+                print 'Vamos a ejecutar', aAejecutar
+                os.system(aAejecutar)
+                print 'Ejecutado', '\r\n\r\n'
+            else:
+                print data
         else:
             print data
+
     except IndexError:
         fich.write(str(time.time()) + " Error:No uaserver listening")
         sys.exit(str(time.time()) + " Error:No uaserver listening")
@@ -148,12 +171,17 @@ if METOD == 'BYE':
     fich = open(PATH_LOG, 'a')
     Sent_BYE = 'BYE ' + "sip:" + OPTION + " SIP/2.0" + '\r\n'
     print Sent_BYE
-    LINEA = Sent_BYE
-    fich.write(str(time.time()) + " Sent to " + IP_PROXY + ":" + PUERTO_PROXY + ': ' + Sent_BYE + '\r\n')
+    Mi_Direccion = 'Mi direccion es ' + USUARIO
+    LINEA = Sent_BYE + Mi_Direccion
+    fich.write(str(time.time()) + " Sent to " + IP_PROXY
+               + ":" + PUERTO_PROXY + ': ' + Sent_BYE)
     dataf(my_socket)
 
     rcv_bye = data.split('\r\n\r\n')[0:-1]
-    if rcv_bye == ['PROXY: SIP/2.0 200 OK']:
-        fich.write(str(time.time()) + " Received from " + IP_PROXY + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
+    if rcv_bye == ['SIP/2.0 200 OK']:
+        fich.write(str(time.time()) + " Received from " + IP_PROXY
+                   + ":" + PUERTO_PROXY + ": 200 OK" + '\r\n')
         fich.close()
+        print data
+    else:
         print data
