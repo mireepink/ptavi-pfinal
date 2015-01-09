@@ -74,35 +74,39 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
             try:
                 # Evaluación de parámetros SDP
                 uaorig_IP = self.request_list[7]
-                uaorig_mediaport = self.request_list[11]
+                uaorig_mediaport = int(self.request_list[11])
                 global uaorig_tuple  # (Para poder modificar la var. global)
                 uaorig_tuple = (uaorig_IP, uaorig_mediaport)
+                exception = False
             except:
                 # Excepción. Envío de "Bad Request"
                 response = MY_VERSION + " 400 Bad Request\r\n\r\n"
                 self.wfile.write(response)
                 log_debug('send', self.clientIP, self.clientPort, response)
-                pass
-            # Petición incorrecta. Envío de "Bad Request"
-            if self.request_list[4] != 'application/sdp':
-                response = MY_VERSION + " 400 Bad Request\r\n\r\n"
-                self.wfile.write(response)
-                log_debug('send', self.clientIP, self.clientPort, response)
-            # Petición correcta. Envío de "Trying, Ringing, OK"
-            else:
-                response = MY_VERSION + " 100 Trying\r\n\r\n"\
-                         + MY_VERSION + " 180 Ringing\r\n\r\n"\
-                         + MY_VERSION + " 200 OK\r\n"\
-                         + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n'\
-                         + 'o=' + MY_ADDRESS + ' ' + MY_SERVIP + '\r\n'\
-                         + 's=sesion_sip\r\n' + 't=0\r\n' + 'm=audio '\
-                         + str(MY_RTPPORT) + ' RTP\r\n'
-                self.wfile.write(response)
-                log_debug('send', self.clientIP, self.clientPort, response)
+                exception = True
+            # Si no hay expeción continúa...
+            if not exception:
+                # Petición incorrecta. Envío de "Bad Request"
+                if self.request_list[4] != 'application/sdp':
+                    response = MY_VERSION + " 400 Bad Request\r\n\r\n"
+                    self.wfile.write(response)
+                    log_debug('send', self.clientIP, self.clientPort, response)
+                # Petición correcta. Envío de "Trying, Ringing, OK"
+                else:
+                    header = MY_VERSION + " 100 Trying\r\n\r\n"\
+                           + MY_VERSION + " 180 Ringing\r\n\r\n"\
+                           + MY_VERSION + " 200 OK\r\n"\
+                           + 'Content-Type: application/sdp\r\n\r\n'
+                    body = 'v=0\r\n' + 'o=' + MY_ADDRESS + ' ' + MY_SERVIP \
+                         + '\r\n' + 's=sesion_sip\r\n' + 't=0\r\n' \
+                         + 'm=audio ' + str(MY_RTPPORT) + ' RTP\r\n'
+                    response = header + body
+                    self.wfile.write(response)
+                    log_debug('send', self.clientIP, self.clientPort, response)
         # ---------------------------- ACK ------------------------------------
         elif self.method == 'ACK':
             uadest_IP = uaorig_tuple[0]
-            uadest_mediaport = int(uaorig_tuple[1])
+            uadest_mediaport = uaorig_tuple[1]
             # --------------------- Envío RTP ---------------------------------
             toRun = "./mp32rtp -i " + uadest_IP + " -p " \
                   + str(uadest_mediaport) + " < " + AUDIO_FILE
