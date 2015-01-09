@@ -40,7 +40,7 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
             if not self.request:
                 break
             else:
-                # Evaluación parámetros obligatorios enviados por cliente
+                # Evaluación de parámetros obligatorios enviados por cliente
                 log_debug('receive', self.clientIP, self.clientPort,
                           self.request)
                 try:
@@ -71,52 +71,59 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
         """
         # -------------------------- REGISTRO ---------------------------------
         if self.method == 'REGISTER':
-            # Evaluación de puerto y parámetro opcional
+            # Evaluación de puerto y tiempo de expiración
             try:
-                server_port = self.request_list[1].split(':')[2]
+                server_port = int(self.request_list[1].split(':')[2])
                 expires = float(self.request_list[4])
+                exception = False
+            # Excepción. Envío de "Bad Request"
             except:
-                # Envío de "Bad Request"
                 response = MY_VERSION + " 400 Bad Request\r\n\r\n"
                 self.wfile.write(response)
                 log_debug('send', self.clientIP, self.clientPort, response)
-                pass
-            # Comprobamos caducidad de usuarios registrados
-            self.check_expires()
-            # Registro del usuario
-            if expires != 0:
-                users[self.address] = (self.clientIP, expires, time.time(),
-                                       server_port)
-                self.register2file()
-                print "Added " + self.address + ':' + str(server_port) \
-                      + ". Expires: " + str(expires)
-                # Envío de "OK"
-                response = MY_VERSION + " 200 OK\r\n\r\n"
-                self.wfile.write(response)
-                log_debug('send', self.clientIP, self.clientPort, response)
-            # Borrado del usuario (si existe en el diccionario)
-            else:
-                found = 0
-                for user in users:
-                    if self.address == user:
-                        found = 1
-                # Usuario encontrado en registro
-                if found:
-                    print "Deleted " + self.address + "."
-                    del users[self.address]
+                exception = True
+            # Si no hay expeción continúa...
+            if not exception:
+                # Comprobamos caducidad de usuarios registrados (actualizamos)
+                self.check_expires()
+                # Registro del usuario
+                if expires != 0:
+                    users[self.address] = (self.clientIP, expires, time.time(),
+                                           server_port)
                     self.register2file()
+                    print "Added " + self.address + ':' + str(server_port) \
+                          + ". Expires: " + str(expires)
                     # Envío de "OK"
                     response = MY_VERSION + " 200 OK\r\n\r\n"
                     self.wfile.write(response)
                     log_debug('send', self.clientIP, self.clientPort, response)
-                # Ususario no encontrado en registro
-                else:
-                    # Envío de "Not Found"
-                    response = MY_VERSION + " 404 User Not Found\r\n\r\n"
-                    self.wfile.write(response)
-                    log_debug('send', self.clientIP, self.clientPort, response)
-        # ----------------------- REENVÍO DE INVITE y BYE ---------------------
-        elif self.method == 'INVITE' or self.method == 'BYE':
+                # Borrado del usuario (si existe en el diccionario)
+                elif expires == 0:
+                    found = 0
+                    for user in users:
+                        if self.address == user:
+                            found = 1
+                    # Usuario encontrado en registro. Borramos usuario
+                    if found:
+                        print "Deleted " + self.address + "."
+                        del users[self.address]
+                        self.register2file()
+                        # Envío de "OK"
+                        response = MY_VERSION + " 200 OK\r\n\r\n"
+                        self.wfile.write(response)
+                        log_debug('send', self.clientIP, self.clientPort,
+                                  response)
+                    # Ususario no encontrado en registro. Envío de "Not Found"
+                    else:
+                        response = MY_VERSION + " 404 User Not Found\r\n\r\n"
+                        self.wfile.write(response)
+                        log_debug('send', self.clientIP, self.clientPort,
+                                  response)
+
+        # --------------------- REENVÍO DE INVITE, ACK y BYE ------------------
+        elif self.method == 'INVITE' or self.method == 'ACK' \
+             or self.method == 'BYE':
+            # Búsqueda de UA destino en registro
             found = 0
             for user in users:
                 if self.address == user:
@@ -125,31 +132,23 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
             if found:
                 ua_destIP = users[self.address][0]
                 ua_destPort = int(users[self.address][3])
-                # Reenvío de solicitud al UA destino
+                # Reenviamos solicitud al UA destino y recibimos su respuesta
                 my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 send(my_socket, self.request, ua_destIP, ua_destPort)
                 response = receive(my_socket, ua_destIP, ua_destPort)
                 my_socket.close()
-                # Reenvío de respuesta al UA origen
-                self.wfile.write(response)
-                log_debug('send', self.clientIP, self.clientPort, response)
-            # UA destino no registrado
-            if not found:
-                # Envío de "Not Found"
+                # Reenvío de respuesta al UA origen ("Not Found" si no escucha)
+                if response != '':
+                    if response.split()[0] == 'Error:':
+                        response = MY_VERSION + " 404 User Not Found\r\n\r\n"
+                    self.wfile.write(response)
+                    log_debug('send', self.clientIP, self.clientPort, response)
+            # UA destino no registrado. Envío de "Not Found"
+            else:
                 response = MY_VERSION + " 404 User Not Found\r\n\r\n"
                 self.wfile.write(response)
                 log_debug('send', self.clientIP, self.clientPort, response)
-        # ------------------------- REENVÍO DE ACK ----------------------------
-        elif self.method == 'ACK':
-            # Buscamos IP y puerto del UA destino
-            for user in users:
-                if self.address == user:
-                    ua_destIP = users[user][0]
-                    ua_destPort = int(users[user][3])
-            # Reenvío de solicitud al UA destino
-            my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            send(my_socket, self.request, ua_destIP, ua_destPort)
-            my_socket.close()
+
         # -------------------- Método no permitido ----------------------------
         else:
             # Envío de "Method Not Allowed"
@@ -268,12 +267,12 @@ def receive(my_socket, servIP, servPort):
     # Recibimos respuesta
     try:
         response = my_socket.recv(1024)
+        if response != '':
+            log_debug('receive', servIP, servPort, response)
     except socket.error:
-        error_msg = "Error: No server listening at " + servIP + " port " \
+        response = "Error: No server listening at " + servIP + " port " \
                   + str(servPort)
-        log_debug('', '', '', error_msg)
-        raise SystemExit
-    log_debug('receive', servIP, servPort, response)
+        log_debug('', '', '', response)
     return response
 
 #-----------------------------Programa principal-------------------------------
