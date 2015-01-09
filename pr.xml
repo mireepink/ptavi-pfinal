@@ -1,5 +1,5 @@
 <config>
 	<server name="Proxy" ip="127.0.0.5" puerto="12365"/>
 	<database path="" passwdpath=""/>
-	<log path=""/>
+	<log path="./log_3.txt"/>
 </config>
