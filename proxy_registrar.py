@@ -229,6 +229,7 @@ if __name__ == "__main__":
     PATH_LOGPROX = log.split(" ")[0][1:-1]
 
     fich = open(PATH_LOGPROX, 'a')
+    fich1 = open(PATH_DATABASE, 'a')
     fich1 = open(PATH_DATABASE, 'r+')
     Fichero = fich1.readlines()
 
