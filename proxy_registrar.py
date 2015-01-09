@@ -18,6 +18,7 @@ users = {}
 REG_FILE = ""
 LOG_FILE = ""
 
+
 #-------------------------------- Clases --------------------------------------
 class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
     """
@@ -189,6 +190,7 @@ class SIPProxyRegisterHandler(SocketServer.DatagramRequestHandler):
                 self.register2file()
                 print "Deleted " + address + " (time expired)."
 
+
 class XMLHandler(ContentHandler):
     """
     Clase XMLHandler. Extrae etiquetas y atributos de un XML
@@ -225,6 +227,7 @@ class XMLHandler(ContentHandler):
         """
         return self.attr_dicc
 
+
 #--------------------------------- Métodos ------------------------------------
 def log_debug(oper, ip, port, msg):
     """
@@ -245,6 +248,7 @@ def log_debug(oper, ip, port, msg):
     logFile.write(formatTime + ' ' + info + msgLine + '\n')
     logFile.close()
 
+
 def send(my_socket, request, servIP, servPort):
     """
     Método para enviar solicitur a un servidor
@@ -256,6 +260,7 @@ def send(my_socket, request, servIP, servPort):
     my_socket.send(request)
     log_debug('send', servIP, servPort, request)
 
+
 def receive(my_socket, servIP, servPort):
     """
     Método para recibir respuesta de un servidor
@@ -264,7 +269,7 @@ def receive(my_socket, servIP, servPort):
     try:
         response = my_socket.recv(1024)
     except socket.error:
-        error_msg = "Error: No server listening at " + servIP  + " port " \
+        error_msg = "Error: No server listening at " + servIP + " port " \
                   + str(servPort)
         log_debug('', '', '', error_msg)
         raise SystemExit
