@@ -15,8 +15,9 @@ import time
 # Variables globales
 MY_ADDRESS = ''
 MY_SERVIP = ''
-RTP_PORT = ''
+MY_RTPPORT = ''
 uaorig_tuple = ()
+
 
 #--------------------------------- Clases -------------------------------------
 class SIPHandler(SocketServer.DatagramRequestHandler):
@@ -74,7 +75,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                 # Evaluación de parámetros SDP
                 uaorig_IP = self.request_list[7]
                 uaorig_mediaport = self.request_list[11]
-                global uaorig_tuple # (Para poder modificar la var. global)
+                global uaorig_tuple  # (Para poder modificar la var. global)
                 uaorig_tuple = (uaorig_IP, uaorig_mediaport)
             except:
                 # Excepción. Envío de "Bad Request"
@@ -93,21 +94,18 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
                          + MY_VERSION + " 180 Ringing\r\n\r\n"\
                          + MY_VERSION + " 200 OK\r\n"\
                          + 'Content-Type: application/sdp\r\n\r\n' + 'v=0\r\n'\
-                         + 'o=' + MY_ADDRESS + ' ' + MY_IP + '\r\n'\
+                         + 'o=' + MY_ADDRESS + ' ' + MY_SERVIP + '\r\n'\
                          + 's=sesion_sip\r\n' + 't=0\r\n' + 'm=audio '\
-                         + str(RTP_PORT) + ' RTP\r\n'
+                         + str(MY_RTPPORT) + ' RTP\r\n'
                 self.wfile.write(response)
                 log_debug('send', self.clientIP, self.clientPort, response)
         # ---------------------------- ACK ------------------------------------
         elif self.method == 'ACK':
             uadest_IP = uaorig_tuple[0]
-            uadest_mediaport = uaorig_tuple[1]
-            # Escucha con (c)vlc en background del audio enviado (OPCIONAL)
-            toRun = "cvlc rtp://@" + uadest_IP + ":" + uadest_mediaport + "&"
-            os.system(toRun)
+            uadest_mediaport = int(uaorig_tuple[1])
             # --------------------- Envío RTP ---------------------------------
-            toRun = "./mp32rtp -i " + uadest_IP + " -p " + uadest_mediaport \
-                  + " < " + AUDIO_FILE
+            toRun = "./mp32rtp -i " + uadest_IP + " -p " \
+                  + str(uadest_mediaport) + " < " + AUDIO_FILE
             log_debug('send', uadest_IP, uadest_mediaport, AUDIO_FILE)
             print "Sending RTP audio to UA..."
             os.system(toRun)
@@ -124,6 +122,7 @@ class SIPHandler(SocketServer.DatagramRequestHandler):
             response = MY_VERSION + " 405 Method Not Allowed\r\n\r\n"
             self.wfile.write(response)
             log_debug('send', self.clientIP, self.clientPort, response)
+
 
 class XMLHandler(ContentHandler):
     """
@@ -171,6 +170,7 @@ class XMLHandler(ContentHandler):
         """
         return self.attr_dicc
 
+
 #--------------------------------- Métodos ------------------------------------
 def log_debug(oper, ip, port, msg):
     """
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         sys.exit("Usage: python uaserver.py config")
     else:
         CONFIG = sys.argv[1]
-    # Parseo del fichero XML    
+    # Parseo del fichero XML
     parser = make_parser()
     xmlHandler_obj = XMLHandler()
     parser.setContentHandler(xmlHandler_obj)
@@ -209,9 +209,9 @@ if __name__ == "__main__":
     attr_dicc = xmlHandler_obj.get_attrs()
     MY_USERNAME = attr_dicc['userName']
     MY_USERPASS = attr_dicc['userPass']
-    MY_IP = attr_dicc['servIp']
-    MY_PORT = int(attr_dicc['servPort'])
-    RTP_PORT = attr_dicc['rtpPort']
+    MY_SERVIP = attr_dicc['servIp']
+    MY_SERVPORT = int(attr_dicc['servPort'])
+    MY_RTPPORT = attr_dicc['rtpPort']
     PROX_IP = attr_dicc['proxIp']
     PROX_PORT = attr_dicc['proxPort']
     LOG_FILE = attr_dicc['logPath']
@@ -220,7 +220,13 @@ if __name__ == "__main__":
     MY_ADDRESS = MY_USERNAME + '@dominio.com'
     # Comenzando el programa...
     log_debug('', '', '', 'Starting...')
+    # Escucha de audio recibido con (c)vlc en background
+    toRun = "cvlc rtp://@" + MY_SERVIP + ":" + str(MY_RTPPORT) \
+          + " 2> /dev/null &"
+    os.system(toRun)
+    print "Listening RTP audio at port " + str(MY_RTPPORT) + "..."
     # Creamos servidor SIP y escuchamos
-    serv = SocketServer.UDPServer((MY_IP, MY_PORT), SIPHandler)
-    print "UA Server listening at " + MY_IP + ':' + str(MY_PORT) + "..."
+    serv = SocketServer.UDPServer((MY_SERVIP, MY_SERVPORT), SIPHandler)
+    print "UA Server listening at " + MY_SERVIP + ':' + str(MY_SERVPORT) \
+          + "..."
     serv.serve_forever()
