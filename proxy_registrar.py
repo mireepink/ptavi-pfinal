@@ -311,7 +311,7 @@ if __name__ == "__main__":
         lines_list = restored_regfile.readlines()
         title = 'User' + '\t\t\t\t' + 'IP' + '\t\t\t' + 'Port' + '\t'\
               + 'Log Time' + '\t\t' + 'Expires' + '\n'
-        for line in lines_list: 
+        for line in lines_list:
             if line != title:
                 reg_empty = False
                 userdata_list = line.split()
