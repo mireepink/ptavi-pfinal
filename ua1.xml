@@ -1,5 +1,5 @@
 <config>
-    <account username="mireya@mireepink.com" />
+    <account username="mireya@mireepink.com" passwd="pink22" />
     <uaserver ip="127.0.0.1" puerto="6784" />
     <rtpaudio puerto="3245" />
     <regproxy ip="127.0.0.1" puerto="2272" />
