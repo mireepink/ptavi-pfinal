@@ -39,10 +39,10 @@ class Proxy(SocketServer.DatagramRequestHandler):
                     try:
                         expires = int(line_list[3])
                         if expires == '0':
-                            fich.write(times + " Borrando a " + direccion\r\n')
+                            fich.write(tt + " Borrando a " + direccion + '\r\n')
                         else:
-                            fich.write(times + " Starting..." + '\r\n')
-                            fich.write(times + " Registrado " + direccion\r\n')
+                            fich.write(tt + " Starting..." + '\r\n')
+                            fich.write(tt + " Registrado " + direccion + '\r\n')
                     except:
                         entero = 'Expires tiene que ser un numero entero\r\n'
                         print entero
@@ -147,24 +147,24 @@ class Proxy(SocketServer.DatagramRequestHandler):
                 my_socket.send(line + '(Vía PROXY)' + '\r\n')
                 myline = my_socket.recv(1024)
                 if line_list[0] == 'INVITE':
-                    fich.write(times + ' Recibido ' + line + '\r\n')
+                    fich.write(tt + ' Recibido ' + line + '\r\n')
                     rcv_invite = myline.split('\r\n\r\n')[0:-1]
                     rcv_invite1 = rcv_invite[0:3]
                     rcv_invite2 = str(rcv_invite1)
-                    fich.write(times + ' Enviando respuesta de '
+                    fich.write(tt + ' Enviando respuesta de '
                                + Destinatario + ': ' + rcv_invite2 + '\r\n')
                     self.wfile.write(myline)
                 elif line_list[0] == 'ACK':
-                    fich.write(times + ' Recibido ACK sip: '
+                    fich.write(tt + ' Recibido ACK sip: '
                                + Destinatario + '\r\n')
                 elif line_list[0] == 'BYE':
                     print 'Enviando ' + myline
-                    fich.write(times + ' Recibido BYE sip: '
+                    fich.write(tt + ' Recibido BYE sip: '
                                + Destinatario + '\r\n')
                     self.wfile.write(myline)
                 elif not line_list[0] in Lista:
                     print myline
-                    fich.write(times + " " + myline + '\r\n')
+                    fich.write(tt + " " + myline + '\r\n')
                     self.wfile.write(myline)
 
         if Client != Destinatario:
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     Aceptado = False
     line = []
     Registrados = []
-    times = str(time.time())
+    tt = str(time.time())
     IP_P = '127.0.0.1'
     #Metodos posibles
     Lista = ["REGISTER", "INVITE", "BYE"]
@@ -239,6 +239,6 @@ if __name__ == "__main__":
         proxy_serv = SocketServer.UDPServer((IP_P, int(PUERTO_PROX)), Proxy)
         proxy_serv.serve_forever()
     except KeyboardInterrupt:
-        fich.write(times + " Finishing..." + '\r\n')
+        fich.write(tt + " Finishing..." + '\r\n')
         fich.close()
         fich1.close()
