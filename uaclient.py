@@ -151,14 +151,9 @@ if METOD == 'INVITE':
                            + PUERTO_PROXY + ': ' + NEWLINE)
                 my_socket.send(NEWLINE)
                 fich.write(tt + ' Conexion audio RTP ' + '\r\n')
-                t = MiThread(IP, Puerto_RTP)
+                t = MiThread(IP, Puerto_RTP, PATH_AUDIO)
                 t.start()
                 t.join()
-                aAejecutar = './mp32rtp -i ' + IP + ' -p '
-                aAejecutar += str(Puerto_RTP) + ' < ' + PATH_AUDIO
-                print 'Vamos a ejecutar', aAejecutar
-                os.system(aAejecutar)
-                print 'Ejecutado', '\r\n\r\n'
             else:
                 print data
         else:
