@@ -45,14 +45,9 @@ class EchoHandler(SocketServer.DatagramRequestHandler):
                 print rcv_invite
                 self.wfile.write(rcv_invite)
             elif Metod == 'ACK':
-                t = MiThread(IP, Puerto_RTP)
+                t = MiThread(IP, Puerto_RTP, PATH_AUDIO)
                 t.start()
                 t.join()
-                aAejecutar = './mp32rtp -i ' + IP + ' -p '
-                aAejecutar += str(Puerto_RTP) + ' < ' + PATH_AUDIO
-                print 'Vamos a ejecutar', aAejecutar
-                os.system(aAejecutar)
-                print 'Ejecutado', '\r\n\r\n'
             elif Metod == 'BYE':
                 self.wfile.write('SIP/2.0 200 OK' + '\r\n\r\n')
                 print 'Terminando conversación...'
@@ -66,16 +61,22 @@ class MiThread(threading.Thread):
     Thread class
     """
 
-    def __init__(self, IP, Puerto_RTP):
+    def __init__(self, IP, Puerto_RTP, PATH_AUDIO):
         threading.Thread.__init__(self)
         self.IP = IP
         self.Puerto_RTP = Puerto_RTP
+        self.Path_Audio = PATH_AUDIO
 
     def run(self):
         aAejecutar1 = 'cvlc rtp://@' + self.IP + ':'
         aAejecutar1 += str(self.Puerto_RTP) + ' &'
         print 'Vamos a ejecutar', aAejecutar1
         os.system(aAejecutar1)
+        aAejecutar = './mp32rtp -i ' + self.IP + ' -p '
+        aAejecutar += str(self.Puerto_RTP) + ' < ' + self.Path_Audio
+        print 'Vamos a ejecutar', aAejecutar
+        os.system(aAejecutar)
+        print 'Ejecutado', '\r\n\r\n'
 
 if __name__ == "__main__":
 
