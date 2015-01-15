@@ -132,7 +132,7 @@ elif method == 'INVITE':
         my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         send(my_socket, request, PROX_IP, PROX_PORT)
         my_socket.close()
-        # ------------------------- Envío RTP ---------------------------------
+        # ------------------------- Envío RTP ----------------------------------
         toRun = "./mp32rtp -i " + uadest_IP + " -p " + str(uadest_mediaport) \
               + " < " + AUDIO_FILE
         log_debug('send', uadest_IP, uadest_mediaport, AUDIO_FILE)
