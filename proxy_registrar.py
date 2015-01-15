@@ -22,7 +22,9 @@ def log(hora, accion, evento):
 
 
 class ExtraerDatos(ContentHandler):
-
+    """
+    Clase ExtraerDatos
+    """
     def __init__(self):
         self.lista = []
         self.etiquetas = [
